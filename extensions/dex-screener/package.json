@@ -5,7 +5,11 @@
   "description": "Search token pair in dexscreener.com",
   "icon": "dexscreener.png",
   "author": "wp-lai",
-  "categories": ["Productivity", "Finance", "Web"],
+  "categories": [
+    "Productivity",
+    "Finance",
+    "Web"
+  ],
   "license": "MIT",
   "commands": [
     {
