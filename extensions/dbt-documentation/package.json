@@ -6,7 +6,9 @@
   "icon": "dbt-icon.png",
   "author": "b-per",
   "license": "MIT",
-  "categories": ["Documentation"],
+  "categories": [
+    "Documentation"
+  ],
   "commands": [
     {
       "name": "index",
