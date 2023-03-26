@@ -12,7 +12,14 @@
       "title": "Search Places",
       "subtitle": "Roblox",
       "description": "Searches for & launches Roblox places",
-      "keywords": ["roblox","game","play","join","experience","place"],
+      "keywords": [
+        "roblox",
+        "game",
+        "play",
+        "join",
+        "experience",
+        "place"
+      ],
       "mode": "view"
     }
   ],
