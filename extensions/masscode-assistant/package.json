@@ -16,7 +16,8 @@
       "title": "MassCode Assistant",
       "description": "Fetch snippets from massCode app",
       "mode": "view",
-      "preferences": [{
+      "preferences": [
+        {
           "name": "sort_order",
           "type": "dropdown",
           "required": false,
@@ -33,7 +34,8 @@
           ],
           "description": "How snippets are ordered",
           "default": "last_copied"
-        }]
+        }
+      ]
     }
   ],
   "dependencies": {
