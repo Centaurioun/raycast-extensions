@@ -64,13 +64,13 @@
       "required": false,
       "description": "VLC Player is required for low latency streams"
     },
-{
-    "name": "streamlinkConfig",
-    "type": "textfield",
-    "title": "Custom Streamlink Config",
-    "required": false,
-    "description": "(optional) Path to custom streamlink config file"
-},
+    {
+      "name": "streamlinkConfig",
+      "type": "textfield",
+      "title": "Custom Streamlink Config",
+      "required": false,
+      "description": "(optional) Path to custom streamlink config file"
+    },
     {
       "name": "quality",
       "type": "dropdown",
