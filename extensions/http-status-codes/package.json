@@ -14,7 +14,10 @@
       "mode": "view"
     }
   ],
-  "categories": ["Developer Tools", "Data"],
+  "categories": [
+    "Developer Tools",
+    "Data"
+  ],
   "dependencies": {
     "@raycast/api": "^1.30.2"
   },
