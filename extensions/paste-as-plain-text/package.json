@@ -5,7 +5,9 @@
   "description": "Paste text from the clipboard as plain text.",
   "icon": "paste-icon.png",
   "author": "koinzhang",
-  "contributors": ["pantajoe"],
+  "contributors": [
+    "pantajoe"
+  ],
   "categories": [
     "Productivity",
     "System"
