@@ -5,7 +5,10 @@
   "description": "Convert between unix timestamp and human readable form date",
   "icon": "command-icon.png",
   "author": "destiner",
-  "categories": ["Data", "Developer Tools"],
+  "categories": [
+    "Data",
+    "Developer Tools"
+  ],
   "license": "MIT",
   "scripts": {
     "build": "ray build -e dist",
