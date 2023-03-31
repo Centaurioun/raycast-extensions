@@ -38,9 +38,18 @@
       "title": "Default Action",
       "default": "copyToClipboard",
       "data": [
-        { "value": "copyToClipboard", "title": "Copy to Clipboard" },
-        { "value": "pasteInApp", "title": "Paste in App" },
-        { "value": "openInBrowser", "title": "Open in Browser" }
+        {
+          "value": "copyToClipboard",
+          "title": "Copy to Clipboard"
+        },
+        {
+          "value": "pasteInApp",
+          "title": "Paste in App"
+        },
+        {
+          "value": "openInBrowser",
+          "title": "Open in Browser"
+        }
       ]
     }
   ],
