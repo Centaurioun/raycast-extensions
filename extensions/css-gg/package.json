@@ -20,7 +20,7 @@
       "title": "View Layout",
       "description": "View the icons in list or grid layout",
       "type": "dropdown",
-      "required": false, 
+      "required": false,
       "default": "grid",
       "data": [
         {
