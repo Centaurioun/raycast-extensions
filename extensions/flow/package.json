@@ -12,7 +12,10 @@
       "title": "Start Timer",
       "subtitle": "Flow",
       "description": "Resume current timer",
-      "keywords": ["start", "play"],
+      "keywords": [
+        "start",
+        "play"
+      ],
       "mode": "no-view"
     },
     {
@@ -20,7 +23,9 @@
       "title": "Pause Timer",
       "subtitle": "Flow",
       "description": "Pause current timer",
-      "keywords": ["stop"],
+      "keywords": [
+        "stop"
+      ],
       "mode": "no-view"
     },
     {
@@ -56,7 +61,10 @@
       "title": "Reset Timer",
       "subtitle": "Flow",
       "description": "Reset current timer",
-      "keywords": ["reset", "restart"],
+      "keywords": [
+        "reset",
+        "restart"
+      ],
       "mode": "no-view"
     },
     {
