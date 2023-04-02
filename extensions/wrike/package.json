@@ -6,18 +6,23 @@
   "icon": "wrike_logo.png",
   "author": "Slus",
   "license": "MIT",
-  "categories": ["Productivity", "Web"],
+  "categories": [
+    "Productivity",
+    "Web"
+  ],
   "preferences": [
     {
       "name": "token",
       "required": true,
-      "type":"password",
+      "type": "password",
       "title": "Wrike Permanent Token",
       "description": "Create a permanent token using the following link https://www.wrike.com/frontend/apps/index.html#/api"
     }
   ],
   "access": "public",
-  "keywords": ["Wrike"],
+  "keywords": [
+    "Wrike"
+  ],
   "commands": [
     {
       "name": "search",
