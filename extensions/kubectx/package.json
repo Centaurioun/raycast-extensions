@@ -20,6 +20,13 @@
           "required": false,
           "title": "Kubectx Installation Path",
           "description": "Location to the Brew installation (Defaults to `/opt/homebrew/bin/kubectx` on M1 Macs, and `/usr/local/bin/kubectx` otherwise)"
+        },
+        {
+          "name": "kubeConfig",
+          "type": "textfield",
+          "required": false,
+          "title": "KUBECONFIG enviroment variable path",
+          "description": "$HOME/.kube/config1:$HOME/.kube/config2 (Defaults to $HOME/.kube/config, please replace $HOME to your user path)"
         }
       ]
     }
@@ -35,7 +42,7 @@
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
-    "react-devtools": "^4.19.2",
+    "react-devtools": "^4.27.3",
     "typescript": "^4.4.3"
   },
   "scripts": {
