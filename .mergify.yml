@@ -1,0 +1,18 @@
+pull_request_rules:
+  - name: Automatic merge without approval
+    conditions:
+    - "label!=ready-to-merge"
+    - "#approved-reviews-by=0"
+    - "#changes-requested-reviews-by=0"
+    - "#review-requested=0"
+    actions:
+      queue:
+        method: squash
+        name: null
+        allow_merging_configuration_change: true
+        autosquash: true
+        commit_message_template: null
+        merge_bot_account: null
+        require_branch_protection: false
+        update_bot_account: null
+        update_method: null
