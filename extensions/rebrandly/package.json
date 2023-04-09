@@ -47,7 +47,7 @@
     "eslint": "^7",
     "eslint-config-kdnj": "^1",
     "react": "^17",
-    "react-devtools": "^4",
+    "react-devtools": "^4.27.3",
     "react-reconciler": "^0",
     "typescript": "^4"
   },
