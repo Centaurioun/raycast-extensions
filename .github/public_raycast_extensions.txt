@@ -11,3 +11,9 @@ supernotes
 resmo
 ploi
 vercast
+ohdear
+devutils
+arc
+netlify
+pinata
+grafbase

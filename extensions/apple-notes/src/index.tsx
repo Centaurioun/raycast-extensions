@@ -12,15 +12,15 @@ import {
 import { runAppleScript } from "run-applescript";
 import { useSqlNotes } from "./useSql";
 import { useAppleScriptNotes } from "./useAppleScript";
-import { isPermissionError, PermissionErrorScreen } from "./errors";
+import { testPermissionErrorType, PermissionErrorScreen } from "./errors";
 import { NoteItem } from "./types";
 import { useState } from "react";
-import { Clipboard } from "@raycast/api";
 
 interface Preferences {
   accounts: boolean;
   folders: boolean;
   modificationDate: boolean;
+  openSeparately: boolean;
 }
 
 const preferences: Preferences = getPreferenceValues();
@@ -32,20 +32,35 @@ export default function Command() {
 
   const escapeStringForAppleScript = (str: string) => str.replace('"', '\\"');
 
-  async function openNote(note: NoteItem) {
-    runAppleScript(`tell application "Notes" \nshow note "${escapeStringForAppleScript(note.title)}" \nend tell`).then(
-      async () => {
-        await closeMainWindow();
-      },
-      async (message) => {
-        setFailedToOpenMessage(message?.toString());
+  async function openNote(note: NoteItem, separately = false) {
+    try {
+      runAppleScript(
+        'tell application "Notes"\n' +
+          `
+        show note "${escapeStringForAppleScript(note.title)}"${separately ? " with separately" : ""}\n` +
+          "activate\n" +
+          "end tell"
+      ).then(
+        async () => {
+          await closeMainWindow();
+        },
+        async (message) => {
+          setFailedToOpenMessage(message?.toString());
+        }
+      );
+    } catch (error) {
+      const parsedError = testPermissionErrorType(error);
+      if (parsedError !== "unknown") {
+        return <PermissionErrorScreen errorType={parsedError} />;
+      } else {
+        throw error;
       }
-    );
+    }
   }
 
   if (sqlState.error) {
-    if (isPermissionError(sqlState.error)) {
-      return <PermissionErrorScreen />;
+    if (testPermissionErrorType(sqlState.error) === "fullDiskAccess") {
+      return <PermissionErrorScreen errorType={"fullDiskAccess"} />;
     } else {
       showToast({
         style: Toast.Style.Failure,
@@ -53,6 +68,10 @@ export default function Command() {
         message: sqlState.error.message,
       });
     }
+  }
+
+  if (appleScriptState.error) {
+    return <PermissionErrorScreen errorType={appleScriptState.error} />;
   }
 
   const alreadyFound: { [key: string]: boolean } = {};
@@ -78,7 +97,7 @@ export default function Command() {
               <ActionPanel title="Failure Actions">
                 <Action.OpenInBrowser
                   title={"Submit bug report"}
-                  url="https://github.com/raycast/extensions/issues/new?assignees=&labels=extension%2Cbug&template=extension_bug_report.yml&title=%5BApple%20Notes%5D+..."
+                  url="https://github.com/raycast/extensions/issues/new?template=extension_bug_report.yml&title=%5BApple%20Notes%5D+...&extension-url=https%3A%2F%2Fraycast.com%2Ftumtum%2Fapple-notes"
                 />
                 <Action.CopyToClipboard title="Copy Error Message" content={failedToOpenMessage} />
               </ActionPanel>
@@ -123,7 +142,14 @@ export default function Command() {
                 )}
               actions={
                 <ActionPanel title="Actions">
-                  <Action title="Open in Notes" icon={Icon.TextDocument} onAction={() => openNote(note)} />
+                  {preferences.openSeparately || (
+                    <Action title="Open in Notes" icon={Icon.Document} onAction={() => openNote(note, false)} />
+                  )}
+                  <Action
+                    title="Open in a Separate Window"
+                    icon={Icon.Document}
+                    onAction={() => openNote(note, true)}
+                  />
                 </ActionPanel>
               }
             />

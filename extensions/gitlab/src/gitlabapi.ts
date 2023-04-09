@@ -108,6 +108,7 @@ export function jsonDataToMergeRequest(mr: any): MergeRequest {
     sha: mr.sha,
     milestone: mr.milestone ? (mr.milestone as Milestone) : undefined,
     draft: mr.draft,
+    has_conflicts: mr.has_conflicts === true || false,
   };
 }
 
@@ -244,6 +245,28 @@ export class MergeRequest {
   public sha = "";
   public milestone?: Milestone;
   public draft = false;
+  public has_conflicts = false;
+}
+
+export class Pipeline {
+  public id = 0;
+  public iid = "";
+  public projectId = "";
+  public status = "";
+  public ref = "";
+  public sha = "";
+  public before_sha = "";
+  public tag = false;
+  public user?: User;
+  public created_at = "";
+  public updated_at = "";
+  public started_at = "";
+  public finished_at = "";
+  public committed_at = "";
+  public duration = 0;
+  public queued_duration = 0;
+  public coverage = "";
+  public webUrl = "";
 }
 
 export interface TodoGroup {

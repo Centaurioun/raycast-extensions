@@ -6,6 +6,9 @@
   "description": "Create a calendar event using natural language",
   "icon": "command-icon.png",
   "author": "mblode",
+  "contributors": [
+    "bascomb"
+  ],
   "license": "MIT",
   "commands": [
     {
@@ -24,6 +27,15 @@
       "title": "Your calendars",
       "description": "Specify your calendar or multiple calendars (comma separated)",
       "placeholder": "calendar1,calendar2,..."
+    },
+    {
+      "name": "focus",
+      "type": "checkbox",
+      "required": false,
+      "default": false,
+      "label": "Focus Calendar on Completion",
+      "title": "Focus Calendar on Completion",
+      "description": "Checkbox to focus on created event in Calendar application on completion"
     }
   ],
   "dependencies": {
@@ -42,7 +54,7 @@
     "@typescript-eslint/parser": "^5.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
-    "react-devtools": "^4.20.0",
+    "react-devtools": "^4.27.3",
     "typescript": "^4.4.3"
   },
   "scripts": {

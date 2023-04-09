@@ -5,6 +5,9 @@
   "description": "Quickly and easily create a temporary email.",
   "icon": "command-icon.png",
   "author": "natterstefan",
+  "contributors": [
+    "JoelKlint"
+  ],
   "categories": [
     "Web",
     "Productivity"
@@ -49,7 +52,7 @@
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
     "prettier": "^2.5.1",
-    "react-devtools": "^4.19.2",
+    "react-devtools": "^4.27.3",
     "typescript": "^4.4.3"
   },
   "scripts": {
