@@ -1,11 +1,10 @@
 pull_request_rules:
   - name: Automatic merge without approval
     conditions:
-    - label=['ready-to-merge']
+    - "label!=ready-to-merge"
     - "#approved-reviews-by=0"
     - "#changes-requested-reviews-by=0"
     - "#review-requested=0"
-    - base=main
     actions:
       queue:
         method: squash
