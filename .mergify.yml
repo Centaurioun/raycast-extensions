@@ -1,10 +1,13 @@
 pull_request_rules:
-  - name: Automatic merge on approval
+  - name: Automatic merge without approval
     conditions:
-      - "#approved-reviews-by>=1"
+      # Apply to all pull requests
+      - "#all"
+      # Ensure that the pull request is ready to be merged
+      - "status-success=continuous-integration/github-actions/pr-check"
     actions:
       merge:
-        allow_merging_configuration_change: false
-        commit_message_template: null
-        merge_bot_account: null
-        method: merge
+        # Allow merge commits if needed
+        allow_merge_commit: true
+        # Use the "squash" method to squash all commits into a single commit
+        method: squash
