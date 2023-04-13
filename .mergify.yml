@@ -1,10 +1,10 @@
 pull_request_rules:
   - name: Automatic merge without approval
     conditions:
-    - "label!=ready-to-merge"
-    - "#approved-reviews-by=0"
-    - "#changes-requested-reviews-by=0"
-    - "#review-requested=0"
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
     actions:
       queue:
         method: squash
@@ -12,7 +12,82 @@ pull_request_rules:
         allow_merging_configuration_change: true
         autosquash: true
         commit_message_template: null
-        merge_bot_account: null
         require_branch_protection: false
         update_bot_account: null
         update_method: null
+  - name: automatic merge for Dependabot pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
+  - name: automatic merge for Snyk pull requests
+    conditions:
+      - 'title~=^\[Snyk\]'
+      - head~=^snyk-fix
+      - check-success~=^security/snyk
+    actions:
+      merge:
+        method: merge
+  - name: automatic merge for Renovate pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
+  - name: automatic merge for Requires.io pull requests
+    conditions:
+      - 'title~=^\[requires.io\]'
+      - head~=^requires-io
+      - check-success=Travis CI - Pull Request
+    actions:
+      merge:
+        method: merge
+  - name: automatic merge for Sonarcloud pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
+  - name: automatic merge for PyUp pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
+  - name: automatic merge for Depfu pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
+  - name: automatic merge for ImgBot pull requests
+    conditions:
+      - label!=ready-to-merge
+      - '#approved-reviews-by=0'
+      - '#changes-requested-reviews-by=0'
+      - '#review-requested=0'
+    actions:
+      merge:
+        commit_message_template: null
+        method: merge
