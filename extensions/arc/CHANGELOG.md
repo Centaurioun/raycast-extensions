@@ -1,5 +1,13 @@
 # Arc Changelog
 
+## [Improvements] - {PR_MERGE_DATE}
+
+- Expand Search Arc suggestions to available engines
+
+## [Improvements] - 2023-03-08
+
+- Add a new command to open little arc.
+
 ## [Quicklinks] - 2023-02-15
 
 - Added a new action to quickly create a quicklink from a page.
