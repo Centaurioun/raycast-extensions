@@ -34,6 +34,14 @@
       "required": true,
       "title": "Toggl API Token",
       "type": "password"
+    },
+    {
+      "name": "hideArchivedProjects",
+      "label": "Hide Archived Projects",
+      "description": "When checked, archived projects are hidden.",
+      "type": "checkbox",
+      "required": true,
+      "default": true
     }
   ],
   "dependencies": {
@@ -48,7 +56,7 @@
     "@typescript-eslint/parser": "^5.10.0",
     "eslint": "^8.7.0",
     "eslint-config-prettier": "^8.3.0",
-    "react-devtools": "^4.22.1",
+    "react-devtools": "^4.27.3",
     "typescript": "^4.5.5"
   },
   "scripts": {

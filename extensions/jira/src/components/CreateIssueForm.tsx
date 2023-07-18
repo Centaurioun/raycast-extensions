@@ -1,32 +1,17 @@
-import {
-  Action,
-  ActionPanel,
-  Form,
-  getPreferenceValues,
-  Icon,
-  showToast,
-  Toast,
-  Clipboard,
-  useNavigation,
-} from "@raycast/api";
+import { Action, ActionPanel, Form, Icon, showToast, Toast, Clipboard, useNavigation } from "@raycast/api";
 import { FormValidation, useCachedPromise, useCachedState, useForm } from "@raycast/utils";
 import { useEffect, useMemo, useState } from "react";
 
-import {
-  getIssuePriorities,
-  createIssue,
-  getCreateIssueMetadata,
-  Component,
-  Version,
-  addAttachment,
-} from "../api/issues";
+import { createIssue, getCreateIssueMetadata, Component, Version, addAttachment, Priority } from "../api/issues";
 import { getLabels } from "../api/labels";
 import { getProjects } from "../api/projects";
 import { getUsers } from "../api/users";
+import { getProjectAvatar } from "../helpers/avatars";
 import { getErrorMessage } from "../helpers/errors";
 import { CustomFieldSchema, getCustomFieldsForCreateIssue } from "../helpers/issues";
 
 import FormParentDropdown from "./FormParentDropdown";
+import FormUserDropdown from "./FormUserDropdown";
 import IssueDetail from "./IssueDetail";
 import IssueFormCustomFields from "./IssueFormCustomFields";
 
@@ -45,10 +30,6 @@ export type IssueFormValues = {
   attachments: string[];
 } & Record<string, unknown>;
 
-type Preferences = {
-  signature: boolean;
-};
-
 type CreateIssueFormProps = {
   draftValues?: IssueFormValues;
   enableDrafts?: boolean;
@@ -56,11 +37,15 @@ type CreateIssueFormProps = {
 
 export default function CreateIssueForm({ draftValues, enableDrafts = true }: CreateIssueFormProps) {
   const { push } = useNavigation();
-  const { signature } = getPreferenceValues<Preferences>();
 
-  const { data: projects } = useCachedPromise(() => getProjects());
+  const [projectQuery, setProjectQuery] = useState("");
+  const { data: projects, isLoading: isLoadingProjects } = useCachedPromise(
+    (query) => getProjects(query),
+    [projectQuery],
+    { keepPreviousData: true }
+  );
+
   const { data: users } = useCachedPromise(() => getUsers());
-  const { data: priorities } = useCachedPromise(() => getIssuePriorities());
   const { data: labels } = useCachedPromise(() => getLabels());
 
   // There's a slight jump on issue types when launching the command since they're
@@ -70,12 +55,12 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
   const [customFieldInitialValues, setCustomFieldInitialValues] = useState({});
   const [customFieldsValidation, setCustomFieldsValidation] = useState({});
 
-  const { handleSubmit, itemProps, values, reset, focus } = useForm<IssueFormValues>({
+  const { handleSubmit, itemProps, values, setValue, reset, focus } = useForm<IssueFormValues>({
     async onSubmit(values) {
       const toast = await showToast({ style: Toast.Style.Animated, title: "Creating issue" });
 
       try {
-        const issue = await createIssue(values, { signature, customFields: selectedIssueType?.fields });
+        const issue = await createIssue(values, { customFields: selectedIssueType?.fields });
 
         if (issue) {
           toast.style = Toast.Style.Success;
@@ -164,12 +149,20 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
 
   // We only query one project in the getCreateIssueMetadata call
   // It's safe to assume the issue types will always correspond to the first element
-  const issueTypes = issueMetadata?.[0].issuetypes;
+  const issueTypes = issueMetadata?.[0]?.issuetypes;
 
   const selectedIssueType = issueTypes?.find((issueType) => issueType.id === values.issueTypeId);
 
   const epicsOnly = !selectedIssueType?.subtask;
-  const issueLinksAutocompleteUrl = selectedIssueType?.fields.issuelinks.autoCompleteUrl;
+  const issueLinksAutocompleteUrl = selectedIssueType?.fields.issuelinks?.autoCompleteUrl;
+
+  const priorityField = selectedIssueType?.fields.priority;
+  useEffect(() => {
+    if (priorityField?.hasDefaultValue) {
+      setValue("priorityId", (priorityField.defaultValue as Priority).id);
+    }
+  }, [priorityField]);
+  const priorities = priorityField?.allowedValues as Priority[];
 
   const components = selectedIssueType?.fields.components?.allowedValues as Component[];
   const fixVersions = selectedIssueType?.fields.fixVersions?.allowedValues as Version[];
@@ -202,14 +195,21 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
       }
       enableDrafts={enableDrafts}
     >
-      <Form.Dropdown {...itemProps.projectId} title="Project" storeValue>
+      <Form.Dropdown
+        {...itemProps.projectId}
+        title="Project"
+        isLoading={isLoadingProjects}
+        storeValue
+        onSearchTextChange={setProjectQuery}
+        throttle
+      >
         {projects?.map((project) => {
           return (
             <Form.Dropdown.Item
               key={project.id}
               value={project.id}
               title={`${project.name} (${project.key})`}
-              icon={project.avatarUrls["32x32"]}
+              icon={getProjectAvatar(project)}
             />
           );
         })}
@@ -221,7 +221,7 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
             <Form.Dropdown.Item
               key={issueType.id}
               value={issueType.id}
-              title={issueType.name}
+              title={issueType.name ?? "Unknown issue type"}
               icon={issueType.iconUrl}
             />
           );
@@ -252,25 +252,21 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
         enableMarkdown
       />
 
-      <Form.Dropdown {...itemProps.assigneeId} title="Assignee" storeValue>
-        <Form.Dropdown.Item title="Unassigned" value="" icon={Icon.Person} />
-
-        {users?.map((user) => {
-          return (
-            <Form.Dropdown.Item
-              key={user.accountId}
-              value={user.accountId}
-              title={user.displayName}
-              icon={user.avatarUrls["32x32"]}
-            />
-          );
-        })}
-      </Form.Dropdown>
+      <FormUserDropdown
+        {...itemProps.assigneeId}
+        title="Assignee"
+        autocompleteUrl={selectedIssueType?.fields.assignee?.autoCompleteUrl}
+      />
 
       <Form.Dropdown {...itemProps.priorityId} title="Priority">
         {priorities?.map((priority) => {
           return (
-            <Form.Dropdown.Item key={priority.id} value={priority.id} title={priority.name} icon={priority.iconUrl} />
+            <Form.Dropdown.Item
+              key={priority.id}
+              value={priority.id}
+              title={priority.name ?? "Unknown priority name"}
+              icon={priority.iconUrl}
+            />
           );
         })}
       </Form.Dropdown>
@@ -288,7 +284,13 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
       {components && components.length > 0 ? (
         <Form.TagPicker {...itemProps.components} title="Components" placeholder="Start typing component name…">
           {components.map((component) => {
-            return <Form.TagPicker.Item key={component.id} title={component.name} value={component.id} />;
+            return (
+              <Form.TagPicker.Item
+                key={component.id}
+                title={component.name ?? "Unknown component name"}
+                value={component.id}
+              />
+            );
           })}
         </Form.TagPicker>
       ) : null}
@@ -296,7 +298,9 @@ export default function CreateIssueForm({ draftValues, enableDrafts = true }: Cr
       {fixVersions && fixVersions.length > 0 ? (
         <Form.TagPicker {...itemProps.fixVersions} title="Fix Versions" placeholder="Start typing fix version…">
           {fixVersions.map((version) => {
-            return <Form.TagPicker.Item key={version.id} title={version.name} value={version.id} />;
+            return (
+              <Form.TagPicker.Item key={version.id} title={version.name ?? "Unknown version name"} value={version.id} />
+            );
           })}
         </Form.TagPicker>
       ) : null}
