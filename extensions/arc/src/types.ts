@@ -20,21 +20,26 @@ export type Space = {
   title?: string;
 };
 
-export type NewTabPreferences = {
-  url: string;
+export type SearchConfig = {
+  search: string;
+  suggestions: string | null;
+  suggestionParser: ((json: any, suggestions: Suggestion[]) => void) | null;
 };
 
-export type SearchArcPreferences = {
-  sorting: "tabsHistorySuggestions" | "historyTabsSuggestions";
-  showFavorites: boolean;
-  showPinnedTabs: boolean;
-  showUnpinnedTabs: boolean;
-  showHistory: boolean;
-  showSuggestions: boolean;
+export type SearchConfigs = {
+  google: SearchConfig;
+  duckduckgo: SearchConfig;
+  bing: SearchConfig;
+  yahoo: SearchConfig;
+  ecosia: SearchConfig;
 };
 
 export type Suggestion = {
   id: string;
   query: string;
   url: string;
+};
+
+export type URLArguments = {
+  url?: string;
 };
