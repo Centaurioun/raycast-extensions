@@ -1,10 +1,10 @@
-import { ActionPanel, Action, Grid, Icon, showToast } from "@raycast/api";
+import { ActionPanel, Action, Grid, Icon, showToast, open } from "@raycast/api";
 import { useState } from "react";
 import { basename, dirname } from "path";
 import tildify from "tildify";
 import { fileURLToPath } from "url";
 import { useRecentEntries } from "./db";
-import { bundleIdentifier, build, keepSectionOrder } from "./preferences";
+import { bundleIdentifier, build, keepSectionOrder, closeOtherWindows } from "./preferences";
 import { EntryLike, EntryType, RemoteEntry, PinMethods } from "./types";
 import {
   filterEntriesByType,
@@ -23,6 +23,8 @@ import {
   ListOrGridItem,
 } from "./grid-or-list";
 import { usePinnedEntries } from "./pinned";
+import { runAppleScriptSync } from "run-applescript";
+import { getBuildScheme } from "./lib/vscode";
 
 export default function Command() {
   const { data, isLoading } = useRecentEntries();
@@ -108,11 +110,23 @@ function LocalItem(props: { entry: EntryLike; uri: string; pinned?: boolean } & 
       actions={
         <ActionPanel>
           <ActionPanel.Section>
-            <Action.Open
+            <Action
               title={`Open in ${build}`}
               icon="action-icon.png"
-              target={props.uri}
-              application={bundleIdentifier}
+              onAction={() => {
+                if (closeOtherWindows) {
+                  runAppleScriptSync(`
+                    tell application "System Events"
+                      tell process "${build}"
+                        repeat while window 1 exists
+                          click button 1 of window 1
+                        end repeat
+                      end tell
+                    end tell
+                  `);
+                }
+                open(props.uri, bundleIdentifier);
+              }}
             />
             <Action.ShowInFinder path={path} />
             <Action.OpenWith path={path} shortcut={{ modifiers: ["cmd"], key: "o" }} />
@@ -134,7 +148,8 @@ function LocalItem(props: { entry: EntryLike; uri: string; pinned?: boolean } & 
 
 function RemoteItem(props: { entry: RemoteEntry; pinned?: boolean } & PinMethods) {
   const remotePath = decodeURI(basename(props.entry.folderUri));
-  const uri = props.entry.folderUri.replace("vscode-remote://", "vscode://vscode-remote/");
+  const scheme = getBuildScheme();
+  const uri = props.entry.folderUri.replace("vscode-remote://", `${scheme}://vscode-remote/`);
 
   return (
     <ListOrGridItem
