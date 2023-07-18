@@ -1,4 +1,4 @@
-import { Icon, List } from "@raycast/api";
+import { Icon, LaunchProps, List, getPreferenceValues } from "@raycast/api";
 import { MutatePromise, useCachedPromise, useSQL } from "@raycast/utils";
 import { useState } from "react";
 import { historyDatabasePath, getHistoryQuery } from "./sql";
@@ -18,8 +18,8 @@ import { useSuggestions } from "./suggestions";
 import { HistoryEntryListItem, SuggestionListItem, TabListItem } from "./list";
 import { searchArcPreferences } from "./preferences";
 
-function SearchArc() {
-  const [searchText, setSearchText] = useState("");
+function SearchArc(props: LaunchProps) {
+  const [searchText, setSearchText] = useState(props.fallbackText ?? "");
   const {
     data: history,
     isLoading: isLoadingHistory,
@@ -34,7 +34,7 @@ function SearchArc() {
 
   return (
     <List
-      searchBarPlaceholder="Search history"
+      searchBarPlaceholder="Search"
       isLoading={isLoadingTabs || isLoadingHistory || isLoadingSuggestions}
       onSearchTextChange={setSearchText}
     >
@@ -97,19 +97,28 @@ function HistoryListSection(props: { history?: HistoryEntry[]; searchText: strin
 }
 
 function SuggestionsListSection(props: { suggestions?: Suggestion[]; searchText: string }) {
-  return searchArcPreferences.showSuggestions ? (
-    <List.Section title="Suggestions">
-      {props.suggestions?.map((suggestion) => (
-        <SuggestionListItem key={suggestion.id} suggestion={suggestion} searchText={props.searchText} />
+  const { suggestions, searchText } = props;
+
+  // Lets return early if we don't want to show suggestions
+  if (!searchArcPreferences.showSuggestions) {
+    return null;
+  }
+
+  const preferences = getPreferenceValues<Preferences.Search>();
+
+  return (
+    <List.Section title="Suggestions" subtitle={preferences.engine}>
+      {suggestions?.map((suggestion) => (
+        <SuggestionListItem key={suggestion.id} suggestion={suggestion} searchText={searchText} />
       ))}
     </List.Section>
-  ) : null;
+  );
 }
 
-export default function Command() {
+export default function Command(props: LaunchProps) {
   return (
     <VersionCheck>
-      <SearchArc />
+      <SearchArc {...props} />
     </VersionCheck>
   );
 }
