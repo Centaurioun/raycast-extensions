@@ -1,9 +1,10 @@
 import { Action, ActionPanel, Color, Icon, List, Toast, showToast } from "@raycast/api";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useTask } from "./hooks/useTask";
+import { useUser } from "./hooks/useUser";
 import { Task, TaskStatus } from "./types/task";
-import { TIME_BLOCK_IN_MINUTES, formatStrDuration } from "./utils/dates";
+import { TIME_BLOCK_IN_MINUTES, formatPriority, formatPriorityIcon, formatStrDuration } from "./utils/dates";
 
 type DropdownStatus = "OPEN" | "DONE";
 
@@ -42,101 +43,84 @@ const StatusDropdown = (props: StatusDropdownProps) => {
   );
 };
 
-// Main Function
 function TaskList() {
-  const [isLoading, setIsLoading] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<DropdownStatus | undefined>();
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const { currentUser } = useUser();
+  const defaults = useMemo(
+    () => ({
+      schedulerVersion: currentUser?.features.scheduler || 14,
+    }),
+    [currentUser]
+  );
 
-  const { getAllTasks, addTime, updateTask, doneTask, incompleteTask } = useTask();
+  const { useFetchTasks, addTime, updateTask, doneTask, incompleteTask } = useTask();
 
-  // Get tasks via API
-  useEffect(() => {
-    const getTasks = async () => {
-      try {
-        setIsLoading(true);
-        const tasks = await getAllTasks();
-        setTasks(tasks ? tasks : []);
-      } catch (error) {
-        console.error("Error while fetching tasks", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    void getTasks();
-  }, []);
+  const { data: tasksData, isLoading } = useFetchTasks();
+  const [tasks, setTasks] = useState<Task[]>(tasksData ?? []);
 
   // Add time to task function
   const handleAddTime = async (task: Task, time: number) => {
     await showToast(Toast.Style.Animated, "Adding time...");
     try {
-      const updatedTime = await addTime(task, time);
-      if (updatedTime) {
-        showToast(Toast.Style.Success, `Added ${formatStrDuration(time + "m")} to "${task.title}" successfully!`);
-      } else {
-        throw new Error("Update time request failed.");
-      }
+      await addTime(task, time);
     } catch (error) {
       showToast({ style: Toast.Style.Failure, title: "Error while updating time", message: String(error) });
+      return;
     }
+    // optimistic update
+    const updatedTime = task.timeChunksRemaining + time / TIME_BLOCK_IN_MINUTES;
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === task.id ? { ...t, timeChunksRemaining: updatedTime } : t)));
+    showToast(Toast.Style.Success, `Added ${formatStrDuration(time + "m")} to "${task.title}" successfully!`);
   };
 
   // Set task to done
   const handleDoneTask = async (task: Task) => {
     await showToast(Toast.Style.Animated, "Updating task...");
     try {
-      const setTaskDone = await doneTask(task);
-      if (setTaskDone) {
-        showToast(Toast.Style.Success, `Task '${task.title}' marked done. Nice work!`);
-      } else {
-        throw new Error("Update task request failed.");
-      }
+      await doneTask(task);
     } catch (error) {
       showToast({ style: Toast.Style.Failure, title: "Error while updating task", message: String(error) });
+      return;
     }
+    // optimistic update
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === task.id ? { ...t, status: "ARCHIVED" } : t)));
+    showToast(Toast.Style.Success, `Task '${task.title}' marked done. Nice work!`);
   };
 
   // Set task to incomplete
   const handleIncompleteTask = async (task: Task) => {
     await showToast(Toast.Style.Animated, "Updating task...");
     try {
-      const setTaskDone = await incompleteTask(task);
-      if (setTaskDone) {
-        showToast(Toast.Style.Success, `Task '${task.title}' marked incomplete!`);
-      } else {
-        throw new Error("Update task request failed.");
-      }
+      await incompleteTask(task);
     } catch (error) {
       showToast({ style: Toast.Style.Failure, title: "Error while updating task", message: String(error) });
+      return;
     }
+    // optimistic update
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === task.id ? { ...t, status: "NEW" } : t)));
+    showToast(Toast.Style.Success, `Task '${task.title}' marked incomplete!`);
   };
 
-  // Update due date
-  const handleUpdateTask = async (task: Task) => {
-    await showToast(Toast.Style.Animated, "Updating due date...");
+  // Update tasks
+  const handleUpdateTask = async (task: Partial<Task>, payload: Partial<Task>) => {
+    await showToast(Toast.Style.Animated, `Updating '${task.title}'...`);
     try {
-      const updatedTask = await updateTask(task);
-      if (updatedTask) {
-        showToast(Toast.Style.Success, `Updated due date for "${task.title}" successfully!`);
-      } else {
-        throw new Error("Update due date request failed.");
-      }
+      await updateTask(task, payload);
     } catch (error) {
-      showToast({
-        style: Toast.Style.Failure,
-        title: "Error while updating due date",
-        message: String(error),
-      });
+      showToast({ style: Toast.Style.Failure, title: `Error while updating '${task.title}'!`, message: String(error) });
+      return;
     }
+    // optimistic update
+    setTasks((prevTasks) => prevTasks.map((t) => (t.id === task.id ? { ...t, ...payload } : t)));
+    showToast(Toast.Style.Success, `Updated '${task.title}'!`);
   };
 
   // Filter tasks by status
   const filteredTasks = useMemo(() => {
     if (selectedStatus === "DONE") {
-      return tasks.filter((task) => task.status === "ARCHIVED" || task.status === "COMPLETE");
+      return tasks.filter((task) => task.status === "ARCHIVED");
     }
-    return tasks.filter((task) => task.status !== "ARCHIVED" && task.status !== "COMPLETE");
+    return tasks.filter((task) => task.status !== "ARCHIVED");
   }, [tasks, selectedStatus]);
 
   // Group tasks by status
@@ -155,6 +139,38 @@ function TaskList() {
 
   const getListAccessories = (task: Task) => {
     const list = [];
+
+    if (task.status !== "ARCHIVED" && task.atRisk) {
+      list.push({
+        tag: {
+          value: "",
+          color: Color.Red,
+        },
+        icon: Icon.ExclamationMark,
+        tooltip: "Task at risk!",
+      });
+    }
+
+    if (defaults.schedulerVersion > 14) {
+      if (task.onDeck) {
+        list.push({
+          tag: {
+            value: "",
+            color: Color.Yellow,
+          },
+          tooltip: "Task is Up Next",
+          icon: Icon.ArrowNe,
+        });
+      }
+      list.push({
+        tag: {
+          value: "",
+          color: Color.PrimaryText,
+        },
+        tooltip: "Priority: " + formatPriority(task.priority),
+        icon: formatPriorityIcon(task.priority),
+      });
+    }
 
     if (task.status !== "ARCHIVED" && task.snoozeUntil) {
       list.push({
@@ -221,7 +237,7 @@ function TaskList() {
     >
       {Object.entries(groupedTasks)
         .sort(([statusA], [statusB]) => {
-          const statusOrder: TaskStatus[] = ["NEW", "IN_PROGRESS", "SCHEDULED", "COMPLETE", "CANCELLED", "ARCHIVED"];
+          const statusOrder: TaskStatus[] = ["IN_PROGRESS", "SCHEDULED", "NEW", "COMPLETE", "CANCELLED", "ARCHIVED"];
           return statusOrder.indexOf(statusA as TaskStatus) - statusOrder.indexOf(statusB as TaskStatus);
         })
         .map(([status, tasks]) => {
@@ -251,6 +267,48 @@ function TaskList() {
                     <ActionPanel>
                       {task.status !== "ARCHIVED" && (
                         <>
+                          {defaults.schedulerVersion > 14 && (
+                            <ActionPanel.Submenu
+                              title="Change Priority"
+                              icon={{ source: Icon.Signal1 }}
+                              shortcut={{ modifiers: ["cmd"], key: "i" }}
+                            >
+                              <Action
+                                icon={{ source: Icon.FullSignal }}
+                                title="Critical"
+                                onAction={() => {
+                                  const payload = { priority: "P1" };
+                                  handleUpdateTask(task, payload);
+                                }}
+                              />
+
+                              <Action
+                                icon={{ source: Icon.Signal3 }}
+                                title="High Priority"
+                                onAction={() => {
+                                  const payload = { priority: "P2" };
+                                  handleUpdateTask(task, payload);
+                                }}
+                              />
+
+                              <Action
+                                icon={{ source: Icon.Signal2 }}
+                                title="Medium Priority"
+                                onAction={() => {
+                                  const payload = { priority: "P3" };
+                                  handleUpdateTask(task, payload);
+                                }}
+                              />
+                              <Action
+                                icon={{ source: Icon.Signal1 }}
+                                title="Low Priority"
+                                onAction={() => {
+                                  const payload = { priority: "P4" };
+                                  handleUpdateTask(task, payload);
+                                }}
+                              />
+                            </ActionPanel.Submenu>
+                          )}
                           <ActionPanel.Submenu
                             title="Add Time"
                             icon={{ source: Icon.Stopwatch }}
@@ -303,13 +361,33 @@ function TaskList() {
                             shortcut={{ modifiers: ["cmd"], key: "d" }}
                             onChange={(date: Date | null) => {
                               if (date) {
-                                handleUpdateTask({ ...task, due: date.toISOString() });
+                                const payload = { due: date.toISOString() };
+                                handleUpdateTask(task, payload);
                               }
                             }}
                           />
+                          {task.onDeck ? (
+                            <Action
+                              icon={{ source: Icon.ArrowDown, tintColor: Color.Red }}
+                              title="Remove From Up Next"
+                              onAction={() => {
+                                const payload = { onDeck: false };
+                                handleUpdateTask(task, payload);
+                              }}
+                            />
+                          ) : (
+                            <Action
+                              icon={{ source: Icon.ArrowNe, tintColor: Color.Yellow }}
+                              title="Send to Up Next"
+                              onAction={() => {
+                                const payload = { onDeck: true };
+                                handleUpdateTask(task, payload);
+                              }}
+                            />
+                          )}
                           <Action
-                            icon={Icon.Checkmark}
-                            title="Mark as done"
+                            icon={{ source: Icon.Checkmark, tintColor: Color.Green }}
+                            title="Mark as Done"
                             onAction={() => {
                               handleDoneTask(task);
                             }}
@@ -324,7 +402,7 @@ function TaskList() {
                       {task.status === "ARCHIVED" && (
                         <Action
                           icon={Icon.Undo}
-                          title="Mark incomplete"
+                          title="Mark Incomplete"
                           onAction={() => {
                             handleIncompleteTask(task);
                           }}

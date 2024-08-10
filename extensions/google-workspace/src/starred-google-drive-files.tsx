@@ -3,7 +3,8 @@ import { useFetch } from "@raycast/utils";
 
 import { getStarredFilesURL, File } from "./api/getFiles";
 import FileListItem from "./components/FileListItem";
-import { withGoogleAuth, getOAuthToken, getUserEmail } from "./components/withGoogleAuth";
+import { withGoogleAuth } from "./components/withGoogleAuth";
+import { getOAuthToken, getUserEmail } from "./api/googleAuth";
 
 function StarredGoogleDriveFiles() {
   const email = getUserEmail();
@@ -33,15 +34,11 @@ function StarredGoogleDriveFiles() {
 
       {data?.files && data.files.length > 0 ? (
         <List.Section title="Starred Files" subtitle={`${data.files.length}`}>
-          {data.files?.map((file) => (
-            <FileListItem file={file} key={file.id} email={email} />
-          ))}
+          {data.files?.map((file) => <FileListItem file={file} key={file.id} email={email} />)}
         </List.Section>
       ) : null}
     </List>
   );
 }
 
-export default function Command() {
-  return withGoogleAuth(<StarredGoogleDriveFiles />);
-}
+export default withGoogleAuth(StarredGoogleDriveFiles);

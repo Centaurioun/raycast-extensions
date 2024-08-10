@@ -13,7 +13,7 @@ import {
   selectTab,
 } from "./arc";
 import { Space, Tab } from "./types";
-import { getSpaceTitle, showFailureToast, isTab } from "./utils";
+import { getSpaceTitle, isTab, showFailureToast } from "./utils";
 
 function OpenInArcAction(props: { tabOrUrl: Tab | string }) {
   async function handleAction() {
@@ -239,7 +239,7 @@ function CloseTabAction(props: { tab: Tab; mutate: MutatePromise<Tab[] | undefin
             return;
           }
 
-          return data.filter((t) => !(t.windowId === props.tab.windowId && t.tabId === props.tab.tabId));
+          return data.filter((t) => !(t.id === props.tab.id));
         },
       });
 

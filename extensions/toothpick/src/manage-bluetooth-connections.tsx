@@ -7,16 +7,20 @@ export default function ManageBluetoothConnectionsView() {
   const [loading, setLoading] = useState(true);
   const [devices, setDevices] = useState<Device[]>([]);
 
-  const { bluetoothBackend } = getPreferenceValues();
+  const { bluetoothBackend } = getPreferenceValues<ExtensionPreferences>();
   const devicesService = getDevicesService(bluetoothBackend);
 
+  if (!devicesService) {
+    throw new Error("Could not find 'blueutil'!");
+  }
+
   const refreshDataLoop = () => {
-    setDevices(devicesService.getDevices());
+    setDevices(devicesService?.getDevices() ?? []);
     setTimeout(() => refreshDataLoop(), 300);
   };
 
   useEffect(() => {
-    setDevices(devicesService.getDevices());
+    setDevices(devicesService?.getDevices() ?? []);
     setLoading(false);
     refreshDataLoop();
   }, []);

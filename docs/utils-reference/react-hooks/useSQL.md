@@ -1,6 +1,6 @@
 # `useSQL`
 
-Hook which executes a query on a local SQL database and returns the [AsyncState](#asyncstate) corresponding to the execution of the query. The last value will be kept between command runs.
+Hook which executes a query on a local SQL database and returns the [AsyncState](#asyncstate) corresponding to the execution of the query.
 
 ## Signature
 
@@ -116,7 +116,7 @@ export default function Command() {
           optimisticUpdate(data) {
             return data?.concat([{ id: "" + Math.random(), title: "New Title" }]);
           },
-        }
+        },
       );
       // yay, the API call worked!
       toast.style = Toast.Style.Success;
@@ -195,6 +195,6 @@ export type MutatePromise<T> = (
     optimisticUpdate?: (data: T) => T;
     rollbackOnError?: boolean | ((data: T) => T);
     shouldRevalidateAfter?: boolean;
-  }
+  },
 ) => Promise<any>;
 ```

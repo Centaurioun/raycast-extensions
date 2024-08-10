@@ -1,11 +1,13 @@
 import { Application, getApplications, MenuBarExtra, open, Icon } from "@raycast/api";
-import { resolveAllFiles } from "./components/fetchFigmaData";
+import { resolveAllFiles } from "./api";
 import { useVisitedFiles } from "./hooks/useVisitedFiles";
 import { useEffect, useState } from "react";
 import { useCachedPromise } from "@raycast/utils";
-import { loadStarredFiles } from "./components/starFiles";
+import { loadStarredFiles } from "./starFiles";
+import { figma } from "./oauth";
+import { withAccessToken } from "@raycast/utils";
 
-export default function Command() {
+function Command() {
   const { data, isLoading, error } = useCachedPromise(
     async () => {
       const results = await resolveAllFiles();
@@ -17,11 +19,7 @@ export default function Command() {
     },
   );
 
-  const {
-    data: starredFiles,
-    isLoading: isLoadingStarredFiles,
-    error: starredFilesError,
-  } = useCachedPromise(
+  const { data: starredFiles, isLoading: isLoadingStarredFiles } = useCachedPromise(
     async () => {
       const results = await loadStarredFiles();
       return results;
@@ -59,67 +57,59 @@ export default function Command() {
     >
       {error && <MenuBarExtra.Item title="Error" key="ErrorState" />}
       {starredFiles && (
-        <>
-          <MenuBarExtra.Submenu key="starred-files" title="Starred" icon={Icon.StarCircle}>
-            {starredFiles?.map((file) => (
-              <MenuBarExtra.Item
-                key={file.key + "-starred-file"}
-                title={file.name}
-                onAction={async () => {
-                  open(url + file.key);
-                  await visitFile(file);
-                }}
-              />
-            ))}
-          </MenuBarExtra.Submenu>
-        </>
+        <MenuBarExtra.Submenu key="starred-files" title="Starred" icon={Icon.StarCircle}>
+          {starredFiles?.map((file) => (
+            <MenuBarExtra.Item
+              key={file.key + "-starred-file"}
+              title={file.name ?? "Untitled"}
+              onAction={async () => {
+                open(url + file.key);
+                await visitFile(file);
+              }}
+            />
+          ))}
+        </MenuBarExtra.Submenu>
       )}
       {visitedFiles && (
-        <>
-          <MenuBarExtra.Submenu key="recent-files" title="Recent" icon={Icon.Hourglass}>
-            {visitedFiles?.map((file) => (
-              <MenuBarExtra.Item
-                key={file.key + "-recent-file"}
-                title={file.name}
-                onAction={async () => {
-                  open(url + file.key);
-                  await visitFile(file);
-                }}
-              />
-            ))}
-          </MenuBarExtra.Submenu>
-          <MenuBarExtra.Separator key="Separator" />
-        </>
+        <MenuBarExtra.Submenu key="recent-files" title="Recent" icon={Icon.Hourglass}>
+          {visitedFiles?.map((file) => (
+            <MenuBarExtra.Item
+              key={file.key + "-recent-file"}
+              title={file.name ?? "Untitled"}
+              onAction={async () => {
+                open(url + file.key);
+                await visitFile(file);
+              }}
+            />
+          ))}
+        </MenuBarExtra.Submenu>
       )}
-      {data &&
-        data?.map((team) => (
-          <MenuBarExtra.Section title={team.name} key={team.name + "-team"}>
-            {team.files.map((project) => (
-              <MenuBarExtra.Submenu
-                key={team.name + project.name + "-project"}
-                title={project.name}
-                children={
-                  project.files?.length != 0 ? (
-                    project.files?.map((file) => (
-                      <MenuBarExtra.Item
-                        key={team.name + project.name + file.key + "-file"}
-                        title={file.name}
-                        onAction={async () => {
-                          open(url + file.key);
-                          await visitFile(file);
-                        }}
-                      />
-                    ))
-                  ) : (
-                    <MenuBarExtra.Item key={team.name + project.name + "-nofile"} title="Empty project" />
-                  )
-                }
-              />
-            ))}
-          </MenuBarExtra.Section>
-        ))}
+      {data?.map((team) => (
+        <MenuBarExtra.Section title={team.name ?? "Untitled"} key={team.name + "-team"}>
+          {team.files.map((project) => (
+            <MenuBarExtra.Submenu key={team.name + project.name + "-project"} title={project.name ?? "Untitled"}>
+              {project.files?.length != 0 ? (
+                project.files?.map((file) => (
+                  <MenuBarExtra.Item
+                    key={team.name + project.name + file.key + "-file"}
+                    title={file.name ?? "Untitled"}
+                    onAction={async () => {
+                      open(url + file.key);
+                      await visitFile(file);
+                    }}
+                  />
+                ))
+              ) : (
+                <MenuBarExtra.Item key={team.name + project.name + "-nofile"} title="Empty project" />
+              )}
+            </MenuBarExtra.Submenu>
+          ))}
+        </MenuBarExtra.Section>
+      ))}
       {(isLoading || isLoadingVisitedFiles) && !data && <MenuBarExtra.Item title="Loading..." key="loadingState" />}
       {!isLoading && !data && <MenuBarExtra.Item title="No projects found" key="noProjectsFoundState" />}
     </MenuBarExtra>
   );
 }
+
+export default withAccessToken(figma)(Command);

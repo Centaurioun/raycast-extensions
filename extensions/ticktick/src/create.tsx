@@ -10,6 +10,8 @@ import {
   AI,
   getPreferenceValues,
   Icon,
+  getSelectedText,
+  Clipboard,
 } from "@raycast/api";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useStartApp from "./hooks/useStartApp";
@@ -19,6 +21,7 @@ import { getProjects } from "./service/project";
 import { formatToServerDate } from "./utils/date";
 import guessProject from "./service/ai/guessProject";
 import { getDefaultDate } from "./service/preference";
+import moment from "moment-timezone";
 
 interface FormValues {
   list: string;
@@ -29,7 +32,7 @@ interface FormValues {
 
 export default function TickTickCreate() {
   const { isInitCompleted } = useStartApp();
-  const { autoFillEnabled } = getPreferenceValues<Preferences>();
+  const { autoFillEnabled, defaultTitle } = getPreferenceValues<Preferences>();
   const defaultDate = useMemo(() => {
     return getDefaultDate();
   }, []);
@@ -37,6 +40,27 @@ export default function TickTickCreate() {
   const [isLocalDataLoaded, setIsLocalDataLoaded] = useState(false);
   const [title, setTitle] = useState<string>("");
   const [projectId, setProjectId] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        switch (defaultTitle) {
+          case "selection": {
+            setTitle((await getSelectedText()) || "");
+            break;
+          }
+          case "clipboard": {
+            setTitle((await Clipboard.readText()) || "");
+            break;
+          }
+          default:
+            break;
+        }
+      } catch (error) {
+        // error
+      }
+    })();
+  }, [defaultTitle]);
 
   useEffect(() => {
     (async () => {
@@ -61,7 +85,14 @@ export default function TickTickCreate() {
         title: values.title.replace(/"/g, `\\"`),
         description: values.desc.replace(/"/g, `\\"`),
         dueDate: formatToServerDate(values.dueDate),
-        isAllDay: false,
+        isAllDay: (() => {
+          if (values.dueDate) {
+            return (
+              moment(values.dueDate).toDate().getTime() - moment(values.dueDate).startOf("day").toDate().getTime() === 1
+            );
+          }
+          return false;
+        })(),
       });
 
       switch (result) {
@@ -109,7 +140,7 @@ export default function TickTickCreate() {
       // Hiding the toast
       toast.hide();
     },
-    500,
+    1000,
     []
   );
 

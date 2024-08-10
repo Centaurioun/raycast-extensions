@@ -6,36 +6,27 @@ import {
   confirmAlert,
   Alert,
   getPreferenceValues,
-  Clipboard,
-  showHUD,
+  Keyboard,
+  LocalStorage,
+  showToast,
 } from "@raycast/api";
-import { setStorage, getStorage } from "./lib/utils";
+import { setStorage, getStorage } from "./lib/storage";
 import { Direction, StorageKey } from "./lib/constants";
 import { Group, deleteGroup, useGroups } from "./lib/Groups";
-import { Pin, usePins } from "./lib/Pins";
-import { addIDAccessory, addParentGroupAccessory, addSortingStrategyAccessory } from "./lib/accessories";
+import { Pin, openPin, usePins } from "./lib/Pins";
+import {
+  addIDAccessory,
+  addParentGroupAccessory,
+  addSortingStrategyAccessory,
+  addVisibilityAccessory,
+} from "./lib/accessories";
 import { getGroupIcon } from "./lib/icons";
 import GroupForm from "./components/GroupForm";
-
-/**
- * Preferences for the view groups command.
- */
-type ViewGroupsPreferences = {
-  /**
-   * Whether to display the ID of each group as an accessory.
-   */
-  showIDs: boolean;
-
-  /**
-   * Whether to display the current sort strategy of each group as an accessory.
-   */
-  showSortStrategy: boolean;
-
-  /**
-   * Whether to display the parent group of each group as an accessory.
-   */
-  showParentGroup: boolean;
-};
+import { InstallExamplesAction } from "./components/actions/InstallExamplesAction";
+import { useEffect, useState } from "react";
+import CopyGroupActionsSubmenu from "./components/actions/CopyGroupActionsSubmenu";
+import { ExtensionPreferences, ViewGroupsPreferences } from "./lib/preferences";
+import { pluralize } from "./lib/utils";
 
 /**
  * Action to create a new group. Opens a form view with blank/default fields.
@@ -48,7 +39,7 @@ const CreateNewGroupAction = (props: { setGroups: (groups: Group[]) => void }) =
     <Action.Push
       title="Create New Group"
       icon={Icon.PlusCircle}
-      shortcut={{ modifiers: ["cmd"], key: "n" }}
+      shortcut={Keyboard.Shortcut.Common.New}
       target={<GroupForm setGroups={setGroups} />}
     />
   );
@@ -74,9 +65,16 @@ const moveGroup = async (index: number, dir: Direction, setGroups: React.Dispatc
  * Raycast command to view all pin groups in a list within the Raycast window.
  */
 export default function ViewGroupsCommand() {
-  const { groups, setGroups } = useGroups();
+  const { groups, setGroups, revalidateGroups } = useGroups();
   const { pins } = usePins();
-  const preferences = getPreferenceValues<ViewGroupsPreferences>();
+  const [examplesInstalled, setExamplesInstalled] = useState<boolean>(true);
+  const preferences = getPreferenceValues<ExtensionPreferences & ViewGroupsPreferences>();
+
+  useEffect(() => {
+    Promise.resolve(LocalStorage.getItem(StorageKey.EXAMPLE_GROUPS_INSTALLED)).then((examplesInstalled) => {
+      setExamplesInstalled(examplesInstalled === 1);
+    });
+  }, []);
 
   return (
     <List
@@ -85,6 +83,13 @@ export default function ViewGroupsCommand() {
       actions={
         <ActionPanel>
           <CreateNewGroupAction setGroups={setGroups as (groups: Group[]) => void} />
+          {!examplesInstalled || groups.length == 0 ? (
+            <InstallExamplesAction
+              setExamplesInstalled={setExamplesInstalled}
+              revalidateGroups={revalidateGroups}
+              kind="groups"
+            />
+          ) : null}
         </ActionPanel>
       }
     >
@@ -93,6 +98,7 @@ export default function ViewGroupsCommand() {
         const groupPins = pins.filter((pin: Pin) => pin.group == group.name);
         const maxID = Math.max(...groups.map((group) => group.id));
         const accessories: List.Item.Accessory[] = [];
+        if (preferences.showVisibility) addVisibilityAccessory(group, accessories, true);
         if (preferences.showSortStrategy) addSortingStrategyAccessory(group, accessories);
         if (preferences.showIDs) addIDAccessory(group, accessories, maxID);
         if (preferences.showParentGroup) addParentGroupAccessory(group, accessories, groups);
@@ -100,43 +106,29 @@ export default function ViewGroupsCommand() {
         return (
           <List.Item
             title={group.name}
-            subtitle={`${groupPins.length} pin${groupPins.length == 1 ? "" : "s"}`}
+            subtitle={`${groupPins.length} ${pluralize("Pin", groupPins.length)}`}
             accessories={accessories}
             key={group.id}
             icon={getGroupIcon(group)}
             actions={
               <ActionPanel>
                 <ActionPanel.Section title="Group Actions">
+                  <Action
+                    title={`Open ${groupPins.length} ${pluralize("Pin", groupPins.length)}`}
+                    icon={Icon.ChevronRight}
+                    onAction={async () => {
+                      await Promise.all(
+                        groupPins.map(async (pin) => {
+                          await openPin(pin, preferences);
+                        }),
+                      );
+                    }}
+                  />
                   <Action.Push
                     title="Edit"
                     icon={Icon.Pencil}
                     target={<GroupForm group={group} setGroups={setGroups as (groups: Group[]) => void} />}
-                  />
-
-                  <Action.CopyToClipboard
-                    title="Copy Group Name"
-                    content={group.name}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "c" }}
-                  />
-                  <Action.CopyToClipboard
-                    title="Copy Group ID"
-                    content={group.id.toString()}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "i" }}
-                  />
-                  <Action
-                    title="Copy Group JSON"
-                    icon={Icon.Clipboard}
-                    shortcut={{ modifiers: ["cmd", "shift"], key: "j" }}
-                    onAction={async () => {
-                      const data = {
-                        groups: [group],
-                        pins: pins.filter((pin: Pin) => pin.group == group.name),
-                      };
-
-                      const jsonData = JSON.stringify(data);
-                      await Clipboard.copy(jsonData);
-                      await showHUD("Copied JSON to Clipboard");
-                    }}
+                    shortcut={Keyboard.Shortcut.Common.Edit}
                   />
 
                   <Action
@@ -154,6 +146,7 @@ export default function ViewGroupsCommand() {
                       }
                     }}
                     style={Action.Style.Destructive}
+                    shortcut={Keyboard.Shortcut.Common.Remove}
                   />
                   <Action
                     title="Delete Group And Pins"
@@ -175,13 +168,35 @@ export default function ViewGroupsCommand() {
                       }
                     }}
                     style={Action.Style.Destructive}
+                    shortcut={{ modifiers: ["cmd", "shift"], key: "x" }}
+                  />
+                  <Action
+                    title="Delete All Groups (Keep Pins)"
+                    icon={Icon.Trash}
+                    onAction={async () => {
+                      if (
+                        await confirmAlert({
+                          title: "Delete Group And Pins",
+                          message: "Are you sure?",
+                          primaryAction: { title: "Delete", style: Alert.ActionStyle.Destructive },
+                        })
+                      ) {
+                        const storedGroups = await getStorage(StorageKey.LOCAL_GROUPS);
+                        for (const group of storedGroups) {
+                          await deleteGroup(group, setGroups as (groups: Group[]) => void, false);
+                        }
+                        await showToast({ title: "Deleted All Groups" });
+                      }
+                    }}
+                    style={Action.Style.Destructive}
+                    shortcut={Keyboard.Shortcut.Common.RemoveAll}
                   />
 
                   {index > 0 ? (
                     <Action
                       title="Move Up"
                       icon={Icon.ArrowUp}
-                      shortcut={{ modifiers: ["cmd", "shift"], key: "u" }}
+                      shortcut={Keyboard.Shortcut.Common.MoveUp}
                       onAction={async () => {
                         await moveGroup(index, Direction.UP, setGroups);
                       }}
@@ -191,7 +206,7 @@ export default function ViewGroupsCommand() {
                     <Action
                       title="Move Down"
                       icon={Icon.ArrowDown}
-                      shortcut={{ modifiers: ["cmd", "shift"], key: "d" }}
+                      shortcut={Keyboard.Shortcut.Common.MoveDown}
                       onAction={async () => {
                         await moveGroup(index, Direction.DOWN, setGroups);
                       }}
@@ -199,6 +214,32 @@ export default function ViewGroupsCommand() {
                   ) : null}
                 </ActionPanel.Section>
                 <CreateNewGroupAction setGroups={setGroups as (groups: Group[]) => void} />
+                <Action.Push
+                  title="Create Subgroup"
+                  icon={Icon.Layers}
+                  target={
+                    <GroupForm
+                      group={{
+                        name: "",
+                        icon: group.icon,
+                        iconColor: group.iconColor,
+                        parent: group.id,
+                        sortStrategy: group.sortStrategy,
+                        id: -1,
+                      }}
+                      setGroups={setGroups as (groups: Group[]) => void}
+                    />
+                  }
+                  shortcut={{ modifiers: ["cmd", "shift"], key: "s" }}
+                />
+                {!examplesInstalled ? (
+                  <InstallExamplesAction
+                    setExamplesInstalled={setExamplesInstalled}
+                    revalidateGroups={revalidateGroups}
+                    kind="groups"
+                  />
+                ) : null}
+                <CopyGroupActionsSubmenu group={group} groups={groups} pins={pins} />
               </ActionPanel>
             }
           />

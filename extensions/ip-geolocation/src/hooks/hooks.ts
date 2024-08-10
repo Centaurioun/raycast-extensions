@@ -6,26 +6,34 @@ import { CacheKey, IPGeolocation, IPGeolocationReadable } from "../types/ip-geol
 import { getIPGeolocation, getIPV4Address, getIPV6Address, isEmpty } from "../utils/common-utils";
 import { WORLD_TIME_API } from "../utils/constants";
 import Style = Toast.Style;
+import net from "net";
 
-export const searchIpGeolocation = (
-  language: string,
-  searchContent: string,
-  coordinatesFormat: "latLon" | "lonLat"
-) => {
+export const useIpGeolocation = (language: string, searchContent: string, coordinatesFormat: "latLon" | "lonLat") => {
   const [ipGeolocation, setIpGeolocation] = useState<[string, string][]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
   const fetchData = useCallback(async () => {
     setIpGeolocation([]);
-    if (isEmpty(searchContent) || !searchContent.includes(".")) {
+    if (isEmpty(searchContent) || (!searchContent.includes(".") && !searchContent.includes(":"))) {
       setLoading(false);
       return;
+    }
+    if (
+      ((searchContent.match(/\./g) || []).length === 3 && /^[0-9.]*$/.test(searchContent)) ||
+      (searchContent.includes(":") && (searchContent.match(/:/g) || []).length >= 2)
+    ) {
+      if (!net.isIP(searchContent)) {
+        setLoading(false);
+        return;
+      }
     }
     setLoading(true);
     if (searchContent.startsWith("https://") || searchContent.startsWith("http://")) {
       searchContent = searchContent.replace("https://", "").replace("http://", "");
     }
-
+    if (searchContent.includes("/")) {
+      searchContent = searchContent.split("/")[0];
+    }
     getIPGeolocation(searchContent, language)
       .then((ipGeolocation: IPGeolocation) => {
         if (ipGeolocation.status === "success") {
@@ -78,7 +86,7 @@ export const searchIpGeolocation = (
   return { ipGeolocation: ipGeolocation, loading: loading };
 };
 
-export const searchMyIpGeolocation = (language: string, showIPv6: boolean, coordinatesFormat: "latLon" | "lonLat") => {
+export const useMyIpGeolocation = (language: string, showIPv6: boolean, coordinatesFormat: "latLon" | "lonLat") => {
   const [ipGeolocation, setIpGeolocation] = useState<[string, string][]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 

@@ -1,15 +1,18 @@
-import { ResultView } from "./api/main";
+import { AnswerView } from "./lib/ui/AnswerView/main";
+import { Preferences, RaycastArgumentsOllamaCommandTranslate } from "./lib/types";
+import { CommandAnswer } from "./lib/settings/enum";
 import { getPreferenceValues } from "@raycast/api";
-import { OllamaApiGenerateRequestBody } from "./api/types";
+import { Creativity } from "./lib/enum";
 
-const preferences = getPreferenceValues();
+const pref = getPreferenceValues<Preferences>();
+if (!pref.ollamaCertificateValidation) process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
-export default function Command(): JSX.Element {
-  const body = {
-    model: preferences.ollamaTranslateModel,
-    prompt: "",
-    system: "Act as a translator. Translate the following text.\n\nOutput only with the translated text.\n",
-  } as OllamaApiGenerateRequestBody;
+export default function Command(props: RaycastArgumentsOllamaCommandTranslate): JSX.Element {
+  const c = CommandAnswer.TRANSLATE;
+  const p = `Translate the text in ${props.arguments.language}.
 
-  return ResultView(body, true);
+Text: {selection}
+
+Translation:`;
+  return <AnswerView command={c} prompt={p} creativity={Creativity.Low} />;
 }

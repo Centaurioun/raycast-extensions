@@ -1,10 +1,31 @@
+import { getPreferenceValues } from "@raycast/api";
+import { useFetch } from "@raycast/utils";
+import { useMemo } from "react";
+import { NativePreferences } from "../types/preferences";
 import { Task } from "../types/task";
 import { axiosPromiseData } from "../utils/axiosPromise";
 import reclaimApi from "./useApi";
-import { ApiResponseTasks, CreateTaskProps } from "./useTask.types";
+import { CreateTaskProps } from "./useTask.types";
 
 const useTask = () => {
   const { fetcher } = reclaimApi();
+
+  const { apiUrl, apiToken } = getPreferenceValues<NativePreferences>();
+
+  const headers = useMemo(
+    () => ({
+      Authorization: `Bearer ${apiToken}`,
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    }),
+    [apiToken]
+  );
+
+  const useFetchTasks = () =>
+    useFetch<[Task]>(`${apiUrl}/tasks?instances=true`, {
+      headers,
+      keepPreviousData: true,
+    });
 
   const createTask = async (task: CreateTaskProps) => {
     try {
@@ -18,7 +39,9 @@ const useTask = () => {
         minChunkSize: task.durationMin,
         maxChunkSize: task.durationMax,
         notes: task.notes,
-        alwaysPrivate: true,
+        alwaysPrivate: task.alwaysPrivate,
+        priority: task.priority,
+        onDeck: task.onDeck,
       };
 
       const [createdTask, error] = await axiosPromiseData<Task>(
@@ -45,6 +68,16 @@ const useTask = () => {
     }
   };
 
+  const handleRestartTask = async (id: string) => {
+    try {
+      const [task, error] = await axiosPromiseData(fetcher(`/planner/restart/task/${id}`, { method: "POST" }));
+      if (!task || error) throw error;
+      return task;
+    } catch (error) {
+      console.error("Error while restarting task", error);
+    }
+  };
+
   const handleStopTask = async (id: string) => {
     try {
       const [task, error] = await axiosPromiseData(fetcher(`/planner/stop/task/${id}`, { method: "POST" }));
@@ -52,16 +85,6 @@ const useTask = () => {
       return task;
     } catch (error) {
       console.error("Error while stopping task", error);
-    }
-  };
-
-  const getAllTasks = async () => {
-    try {
-      const [tasks, error] = await axiosPromiseData<ApiResponseTasks>(fetcher("/tasks"));
-      if (!tasks && error) throw error;
-      return tasks;
-    } catch (error) {
-      console.error("Error while fetching tasks", error);
     }
   };
 
@@ -79,20 +102,19 @@ const useTask = () => {
   };
 
   // Update task
-  const updateTask = async (task: Task) => {
+  const updateTask = async (task: Partial<Task>, payload: Partial<Task>) => {
     try {
-      const [updatedTask, error] = await axiosPromiseData(
+      const [updatedTask] = await axiosPromiseData(
         fetcher(`/tasks/${task.id}`, {
-          method: "PUT",
+          method: "PATCH",
           responseType: "json",
-          data: task,
+          data: payload,
         })
       );
-
-      if (!updatedTask || error) throw error;
       return updatedTask;
     } catch (error) {
       console.error("Error while updating task", error);
+      throw error;
     }
   };
 
@@ -122,15 +144,37 @@ const useTask = () => {
     }
   };
 
+  // Snooze Task
+  const rescheduleTask = async (taskId: string, rescheduleCommand: string, relativeFrom?: string) => {
+    try {
+      const [task, error] = await axiosPromiseData(
+        fetcher(
+          `/planner/task/${taskId}/snooze?snoozeOption=${rescheduleCommand}&relativeFrom=${
+            relativeFrom ? relativeFrom : null
+          }`,
+          {
+            method: "POST",
+          }
+        )
+      );
+      if (!task || error) throw error;
+      return task;
+    } catch (error) {
+      console.error("Error while rescheduling event", error);
+    }
+  };
+
   return {
+    useFetchTasks,
     createTask,
     handleStartTask,
+    handleRestartTask,
     handleStopTask,
-    getAllTasks,
     addTime,
     updateTask,
     doneTask,
     incompleteTask,
+    rescheduleTask,
   };
 };
 

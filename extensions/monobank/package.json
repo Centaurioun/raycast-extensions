@@ -8,6 +8,14 @@
   "categories": [
     "Finance"
   ],
+  "keywords": [
+    "mono",
+    "bank",
+    "currency",
+    "money",
+    "cards",
+    "jars"
+  ],
   "license": "MIT",
   "commands": [
     {
@@ -54,6 +62,7 @@
     "dev": "ray develop",
     "fix-lint": "ray lint --fix",
     "lint": "ray lint",
-    "publish": "npx @raycast/api@latest publish"
+    "publish": "npx @raycast/api@latest publish",
+    "pull-contributions": "npx @raycast/api@latest pull-contributions"
   }
 }

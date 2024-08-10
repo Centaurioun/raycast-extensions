@@ -2,27 +2,39 @@ import { ActionPanel, Icon, showToast, Action, Image, Keyboard, Toast } from "@r
 import { formatDistanceToNow } from "date-fns";
 
 import { useUsers } from "../../hooks";
-import { getPropertyIcon, notionColorToTintColor, patchPage } from "../../utils/notion";
-import { DatabaseProperty, DatabasePropertyOption, PagePropertyType } from "../../utils/types";
+import {
+  getPropertyIcon,
+  notionColorToTintColor,
+  patchPage,
+  PageProperty,
+  DatabaseProperty,
+  PropertyConfig,
+  getPropertyConfig,
+} from "../../utils/notion";
 
-export function ActionEditPageProperty(props: {
+type EditPropertyOptions = PropertyConfig<"select" | "multi_select">["options"][number] & {
+  icon?: string;
+};
+
+export function ActionEditPageProperty({
+  databaseProperty,
+  pageId,
+  pageProperty,
+  shortcut,
+  mutate,
+  icon,
+  options,
+}: {
   databaseProperty: DatabaseProperty;
   pageId: string;
-  pageProperty?: PagePropertyType;
+  pageProperty?: PageProperty;
   mutate: () => Promise<void>;
   shortcut?: Keyboard.Shortcut;
   icon?: Image.ImageLike;
-  customOptions?: DatabasePropertyOption[];
+  options?: EditPropertyOptions[];
 }) {
-  const {
-    databaseProperty,
-    pageId,
-    pageProperty,
-    shortcut,
-    mutate,
-    icon = getPropertyIcon(databaseProperty),
-    customOptions: options = databaseProperty.options || [],
-  } = props;
+  if (!icon) icon = getPropertyIcon(databaseProperty);
+  if (!options) options = getPropertyConfig(databaseProperty, ["select", "multi_select"])?.options;
 
   const { data: users } = useUsers();
 
@@ -59,7 +71,7 @@ export function ActionEditPageProperty(props: {
       const value = pageProperty && "select" in pageProperty ? pageProperty.select?.id : null;
       return (
         <ActionPanel.Submenu title={title} icon={icon} shortcut={shortcut}>
-          {(options as DatabasePropertyOption[])?.map((opt) => (
+          {options?.map((opt) => (
             <Action
               key={opt.id}
               icon={
@@ -76,6 +88,35 @@ export function ActionEditPageProperty(props: {
                   setPageProperty({ [databaseProperty.id]: { select: { id: opt.id } } });
                 } else {
                   setPageProperty({ [databaseProperty.id]: { select: null } });
+                }
+              }}
+            />
+          ))}
+        </ActionPanel.Submenu>
+      );
+    }
+
+    case "status": {
+      const value = pageProperty && "status" in pageProperty ? pageProperty.status?.id : null;
+      return (
+        <ActionPanel.Submenu title={title} icon={icon} shortcut={shortcut}>
+          {options?.map((opt) => (
+            <Action
+              key={opt.id}
+              icon={
+                (opt.icon ? opt.icon : opt.id !== "_select_null_")
+                  ? {
+                      source: opt.icon ? opt.icon : value === opt.id ? Icon.Checkmark : Icon.Circle,
+                      tintColor: notionColorToTintColor(opt.color),
+                    }
+                  : undefined
+              }
+              title={(opt.name ? opt.name : "Untitled") + (opt.icon && value === opt.id ? "  ✓" : "")}
+              onAction={() => {
+                if (opt.id && opt.id !== "_select_null_") {
+                  setPageProperty({ [databaseProperty.id]: { status: { id: opt.id } } });
+                } else {
+                  setPageProperty({ [databaseProperty.id]: { status: null } });
                 }
               }}
             />
@@ -125,7 +166,7 @@ export function ActionEditPageProperty(props: {
       const multiSelectIds = value.map((selection) => selection.id);
       return (
         <ActionPanel.Submenu title={title} icon={icon} shortcut={shortcut}>
-          {(options as DatabasePropertyOption[])?.map((opt) => {
+          {options?.map((opt) => {
             if (!opt.id) {
               return null;
             }

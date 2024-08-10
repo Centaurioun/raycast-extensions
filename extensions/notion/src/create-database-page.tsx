@@ -1,10 +1,6 @@
-import { CreateDatabaseForm } from "./components";
-import { View } from "./components";
+import { withAccessToken } from "@raycast/utils";
 
-export default function Command() {
-  return (
-    <View>
-      <CreateDatabaseForm />
-    </View>
-  );
-}
+import { CreatePageForm } from "./components/forms/CreatePageForm";
+import { notionService } from "./utils/notion/oauth";
+
+export default withAccessToken(notionService)(CreatePageForm);

@@ -1,14 +1,13 @@
 import { Icon, LaunchType, MenuBarExtra, getPreferenceValues, launchCommand, open } from "@raycast/api";
-import { useFetch } from "@raycast/utils";
-import { addDays, differenceInHours, endOfDay, format, formatDistance, isWithinInterval, startOfDay } from "date-fns";
+import { addDays, differenceInHours, endOfDay, formatDistance, isWithinInterval, startOfDay } from "date-fns";
 import { useMemo } from "react";
-import { useEvent } from "./hooks/useEvent";
-import { ApiResponseEvents, ApiResponseMoment } from "./hooks/useEvent.types";
+import { useEventActions, useEvents } from "./hooks/useEvent";
+import { useMoment } from "./hooks/useMoment";
 import { useUser } from "./hooks/useUser";
 import { Event } from "./types/event";
 import { NativePreferences } from "./types/preferences";
 import { miniDuration } from "./utils/dates";
-import { eventColors, truncateEventSize } from "./utils/events";
+import { eventColors, getOriginalEventIDFromSyncEvent, truncateEventSize } from "./utils/events";
 import { parseEmojiField } from "./utils/string";
 
 type EventSection = { section: string; sectionTitle: string; events: Event[] };
@@ -21,7 +20,7 @@ type TitleInfo = {
 };
 
 const ActionOptionsWithContext = ({ event }: { event: Event }) => {
-  const { getEventActions } = useEvent();
+  const { getEventActions } = useEventActions();
 
   return (
     <>
@@ -33,7 +32,7 @@ const ActionOptionsWithContext = ({ event }: { event: Event }) => {
 };
 
 const EventsSection = ({ events, sectionTitle }: { events: Event[]; sectionTitle: string }) => {
-  const { showFormattedEventTitle } = useEvent();
+  const { showFormattedEventTitle } = useEventActions();
 
   return (
     <>
@@ -55,51 +54,56 @@ const EventsSection = ({ events, sectionTitle }: { events: Event[]; sectionTitle
 };
 
 export default function Command() {
-  const { apiToken, apiUrl, upcomingEventsCount } = getPreferenceValues<NativePreferences>();
+  const { upcomingEventsCount } = getPreferenceValues<NativePreferences>();
 
   const { currentUser } = useUser();
 
   const NUMBER_OF_EVENTS = Number(upcomingEventsCount) || 5;
 
-  const fetchHeaders = {
-    Authorization: `Bearer ${apiToken}`,
-    "Content-Type": "application/json",
-    Accept: "application/json",
-  };
+  const now = new Date();
 
-  const range = {
-    start: format(startOfDay(new Date()), "yyyy-MM-dd"),
-    end: format(addDays(new Date(), 2), "yyyy-MM-dd"),
-  };
-
-  const { data: eventData, isLoading: isLoadingEvents } = useFetch<ApiResponseEvents>(
-    `${apiUrl}/events?sourceDetails=true&start=${range.start}&end=${range.end}`,
-    {
-      headers: fetchHeaders,
-      keepPreviousData: true,
-    }
-  );
-
-  const { data: eventMoment, isLoading: isLoadingMoment } = useFetch<ApiResponseMoment>(`${apiUrl}/moment/next`, {
-    headers: fetchHeaders,
-    keepPreviousData: true,
+  const { events, isLoading: isLoadingEvents } = useEvents({
+    start: startOfDay(now),
+    end: addDays(now, 2),
   });
+
+  const { momentData, isLoading: isLoadingMoment } = useMoment();
+
+  // if the events returned by moment/next are synced events then return the original event from the events call if it exists
+  const eventMoment = useMemo(() => {
+    if (!momentData) return momentData;
+
+    const findEvent = (event: Event | undefined | null) => {
+      if (!event || !events || events.length === 0) return event;
+
+      const originalEventID = getOriginalEventIDFromSyncEvent(event);
+      if (!originalEventID) return event;
+
+      return events.find((e) => e.eventId === originalEventID) ?? event;
+    };
+
+    const { event } = momentData;
+
+    return {
+      event: findEvent(event),
+    };
+  }, [momentData, events]);
 
   const showDeclinedEvents = useMemo(() => {
     return !!currentUser?.settings.showDeclinedEvents;
   }, [currentUser]);
 
-  const events = useMemo<EventSection[]>(() => {
-    if (!eventData) return [];
+  const eventSections = useMemo<EventSection[]>(() => {
+    if (!events) return [];
 
     const now = new Date();
     const today = startOfDay(now);
 
-    const events: EventSection[] = [
+    const eventSectionsUnfiltered: EventSection[] = [
       {
         section: "NOW",
         sectionTitle: "Now",
-        events: eventData
+        events: events
           .filter((event) => {
             return showDeclinedEvents ? true : event.rsvpStatus !== "Declined" && event.rsvpStatus !== "NotResponded";
           })
@@ -118,7 +122,7 @@ export default function Command() {
       {
         section: "TODAY",
         sectionTitle: "Upcoming events",
-        events: eventData
+        events: events
           .filter((event) => {
             return showDeclinedEvents ? true : event.rsvpStatus !== "Declined" && event.rsvpStatus !== "NotResponded";
           })
@@ -136,8 +140,8 @@ export default function Command() {
       },
     ];
 
-    return events.filter((event) => event.events.length > 0);
-  }, [eventData, showDeclinedEvents]);
+    return eventSectionsUnfiltered.filter((event) => event.events.length > 0);
+  }, [events, showDeclinedEvents]);
 
   const handleOpenReclaim = () => {
     open("https://app.reclaim.ai");
@@ -197,7 +201,7 @@ export default function Command() {
       title={titleInfo.minTitle}
       tooltip={titleInfo.fullTitle}
     >
-      {events.map((eventSection) => (
+      {eventSections.map((eventSection) => (
         <EventsSection
           key={eventSection.section}
           events={eventSection.events}

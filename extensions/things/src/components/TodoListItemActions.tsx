@@ -1,4 +1,15 @@
-import { Icon, ActionPanel, showToast, Action, Toast, Color, confirmAlert, Keyboard, AI } from '@raycast/api';
+import {
+  Icon,
+  ActionPanel,
+  showToast,
+  Action,
+  Toast,
+  Color,
+  confirmAlert,
+  Keyboard,
+  AI,
+  environment,
+} from '@raycast/api';
 
 import { AddNewTodo } from '../add-new-todo';
 import {
@@ -64,13 +75,13 @@ export default function TodoListItemActions({
     if (
       await confirmAlert({
         title: 'Add these items to the checklist?',
-        message: items,
+        message: items.trim(),
         icon: { source: Icon.Stars, tintColor: Color.Yellow },
       })
     ) {
-      await updateAction({ 'append-checklist-items': items }, { title: 'Added checklist items' });
+      await updateAction({ 'append-checklist-items': items.trim() }, { title: 'Added checklist items' });
     } else {
-      toast.hide();
+      await toast.hide();
     }
   }
 
@@ -148,7 +159,7 @@ New title:
   return (
     <ActionPanel>
       <ActionPanel.Section title={todo.name}>
-        <Action.OpenInBrowser title="Open in Things" icon="things-icon.png" url={`things:///show?id=${todo.id}`} />
+        <Action.OpenInBrowser title="Open in Things" icon="things-flat.png" url={`things:///show?id=${todo.id}`} />
         {todo.status !== 'completed' && (
           <Action
             title="Mark as Completed"
@@ -238,12 +249,14 @@ New title:
           type={Action.PickDate.Type.Date}
         />
 
-        <Action
-          title="Generate Checklist with AI"
-          icon={Icon.BulletPoints}
-          shortcut={{ modifiers: ['cmd', 'shift'], key: 'c' }}
-          onAction={generateChecklistWithAI}
-        />
+        {environment.canAccess(AI) && (
+          <Action
+            title="Generate Checklist with AI"
+            icon={Icon.BulletPoints}
+            shortcut={{ modifiers: ['cmd', 'shift'], key: 'c' }}
+            onAction={generateChecklistWithAI}
+          />
+        )}
 
         <Action
           title="Make To-Do Actionable with AI"
@@ -283,7 +296,7 @@ New title:
         <ActionPanel.Section title={todo.project.name}>
           <Action.OpenInBrowser
             title="Open Project in Things"
-            icon="things-icon.png"
+            icon="things-flat.png"
             shortcut={{ modifiers: ['cmd'], key: 'o' }}
             url={`things:///show?id=${todo.project.id}`}
           />
@@ -294,7 +307,7 @@ New title:
         <ActionPanel.Section title={area.name}>
           <Action.OpenInBrowser
             title="Open Area in Things"
-            icon="things-icon.png"
+            icon="things-flat.png"
             shortcut={{ modifiers: ['opt'], key: 'o' }}
             url={`things:///show?id=${area.id.replace('THMAreaParentSource/', '')}`}
           />
@@ -307,7 +320,7 @@ New title:
       <ActionPanel.Section title={`${capitalize(commandListName)} List`}>
         <Action.OpenInBrowser
           title={`Open ${capitalize(commandListName)} List in Things`}
-          icon="things-icon.png"
+          icon="things-flat.png"
           shortcut={{ modifiers: ['ctrl'], key: 'o' }}
           url={`things:///show?id=${commandListName.toLowerCase()}`}
         />

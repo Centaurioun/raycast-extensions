@@ -1,5 +1,13 @@
 # Weather Changelog
 
+## [SF Symbols] - 2024-03-04
+
+- Ensure design consistency by using SF Symbols and unicode characters.
+
+## [Clock Format] - 2024-01-28
+
+- Add Support for the 24h clock format. The clock format can be changed in the settings.
+
 ## [Feels Like] - 2023-08-25
 
 - Upgrade to 1.57
@@ -35,6 +43,10 @@
 ## [Fix] - 2021-10-21
 
 Fix showing the temp unit instead of wind unit.
+
+## [Fix] - 2023-10-15
+
+- Fix wrong area title when region is not present
 
 ## [Weather 0.3.0] - 2021-10-20
 

@@ -1,5 +1,33 @@
 # Home Assistant Changelog
 
+## [Weather] - 2024-07-25
+
+- Use `weather.get_forecasts` to receive weather forecasts (required since Home Assistant `2024.07`)
+- Add sun entity support for weather menu command
+- Add `Services` and `Run Service` command to be able to call Services (including Quicklinks/Deeplinks)
+- Menu items show the last update/last change info
+- Add `Calendar` and `Calendar Menu` command
+
+## [Update] - 2024-04-06
+
+- Sort `StatesList` in alphabetical order
+
+## [Update] - 2024-01-27
+
+- Add three Single Entity Menu Commands, two disabled by default
+
+## [Update] - 2024-01-19
+
+- Make use of cache for faster loading of entities
+
+## [Companion] - 2023-12-22
+
+- Add support for Home Assistant Companion app
+
+## [New Logo] - 2023-09-30
+
+- Use the new Home Assistant logo
+
 ## [Fix] - 2023-09-10
 
 - Notifications could not be opened from the Menubar and instead throw an error

@@ -1,5 +1,13 @@
 # Word Count Changelog
 
+## [Moved contributor] - 2024-04-15
+
+- No changes were made in the code.
+
+## [Improvements] - 2023-01-21
+
+- Added passing the selected text to the form
+
 ## [Update] - 2023-08-22
 
 - Added reading and speaking time ⌛

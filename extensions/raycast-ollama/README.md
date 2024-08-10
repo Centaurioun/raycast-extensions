@@ -1,21 +1,40 @@
-# Raycast Ollama
+<div align="center">
+  <picture>
+    <img alt="logo" height="128px" src="assets/icon@dark.png">
+  </picture>
+  <h1 align="center">Raycast Ollama</h1>
+</div>
 
-Use [Ollama](https://ollama.ai) for local llama inference on Raycast.
+Use [Ollama](https://ollama.ai) for local llama inference on Raycast. This application is not directly affiliated with Ollama.ai.
 
 ## Requirements
 
-1. Ollama installed and running.
-2. At least orca 3b and llama2 7b model installed (they are the default). Use 'Manage Models' commands for pulling images or ollama cli.
+[Ollama](https://ollama.ai) installed and running on your mac. At least one model need to be installed throw Ollama cli tools or with 'Manage Models' Command. You can find all available model [here](https://ollama.ai/library).
 
-```bash
-ollama pull orca
-ollama pull llama2
-```
+## How to Use
 
-## Use a different model
+### Command: Manage Models
 
-This plugin allows you to select a different model for each command. Keep in mind that you need to have the corresponding model installed on your machine. You can find all available model [here](https://gist.github.com/mchiang0610/b959e3c189ec1e948e4f6a1f737a1fc5).
+View, add, and remove models that are installed locally or on a configured remote Ollama Server. To manage and utilize models from the remote server, use the ***Add Server*** action.
 
-## Create your own custom commands
+### Command: Chat With Ollama
 
-With '***Create Custom Command***' you can create your own custom command or chatbot using whatever model you want.
+Chat with your preferred model from Raycast, with the following features:
+
+- ***CMD+M***, *Change Model*: change model when you want and use different one for vision or embedding.
+- ***CMD+S***, *Selection*: Add text from selection or clipboard to the prompt.
+- ***CMD+B***, *Browser Selection Tab*: Add content from selected tab to the prompt. Raycast Browser Extension is required.
+- ***CMD+I***, *Image From Clipboard*: Add jpeg or png image to the prompt. A Model with vision capabilities is required.
+- ***CMD+F***, *File*: Add content from files. This feature is still experimental.
+
+From extentions preferences you can chose how many messages use as memory. By default it use the last 20 messages.
+
+### Command: Create Custom Commands
+
+All preconfigured commands are crafted for general use. This command allow you to create a custom command for your specific needs.
+
+Prompt use [Raycast Prompt Explorer](https://prompts.ray.so/) format with the following tags supported:
+
+- ***{selection}***: Add text from selection or clipboard to the prompt.
+- ***{browser-tab}***: Add content from selected tab to the prompt. Raycast Browser Extension is required. Page format can be changed between: markdown {browser-tab}, html {browser-tab format="html"}, text {browser-tab format="text"}.
+- ***{image}***: Add jpeg or png image to the prompt. A Model with vision capabilities is required.

@@ -4,9 +4,8 @@ import { useCachedPromise } from "@raycast/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 
-import { fetchPageContent, getPageName, notionColorToTintColor } from "../utils/notion";
+import { fetchPageContent, getPageName, notionColorToTintColor, PageProperty, Page, User } from "../utils/notion";
 import { handleOnOpenPage } from "../utils/openPage";
-import { Page, PagePropertyType, User } from "../utils/types";
 
 import { AppendToPageForm } from "./forms";
 
@@ -125,7 +124,7 @@ export function PageDetail({ page, setRecentPage, users }: PageDetailProps) {
 
 function getMetadata(
   title: string,
-  value: PagePropertyType | (FormulaPropertyItemObjectResponse["formula"] & { id: string }),
+  value: PageProperty | (FormulaPropertyItemObjectResponse["formula"] & { id: string }),
   users?: User[],
 ): JSX.Element | null {
   switch (value.type) {

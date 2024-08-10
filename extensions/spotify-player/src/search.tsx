@@ -1,5 +1,5 @@
-import { useState, useEffect, ComponentProps } from "react";
-import { Action, ActionPanel, Grid, Icon, List, LocalStorage } from "@raycast/api";
+import { useState, useEffect, ComponentProps, Fragment } from "react";
+import { Action, ActionPanel, Grid, Icon, LaunchProps, List, LocalStorage, getPreferenceValues } from "@raycast/api";
 import { useCachedPromise } from "@raycast/utils";
 import { useSearch } from "./hooks/useSearch";
 import { View } from "./components/View";
@@ -9,7 +9,7 @@ import { TracksSection } from "./components/TracksSection";
 import { PlaylistsSection } from "./components/PlaylistsSection";
 import { debounce } from "./helpers/debounce";
 import { ShowsSection } from "./components/ShowsSection";
-import { EpisodesSection } from "./components/EpisodessSection";
+import { EpisodesSection } from "./components/EpisodesSection";
 
 const filters = {
   all: "All",
@@ -23,13 +23,16 @@ const filters = {
 
 type FilterValue = keyof typeof filters;
 
-function SearchCommand() {
+function SearchCommand({ initialSearchText }: { initialSearchText?: string }) {
+  const { topView } = getPreferenceValues<Preferences.Search>();
+
   const {
     data: recentSearchesData,
     isLoading: recentSearchIsLoading,
     revalidate: recentSearchRevalidate,
   } = useCachedPromise(() => LocalStorage.getItem<string>("recent-searches"));
-  const [searchText, setSearchText] = useState("");
+
+  const [searchText, setSearchText] = useState(initialSearchText || "");
   const [searchFilter, setSearchFilter] = useState<FilterValue>("all");
   const { searchData, searchIsLoading } = useSearch({
     query: searchText,
@@ -76,7 +79,7 @@ function SearchCommand() {
                         onAction={async () => {
                           await LocalStorage.setItem(
                             "recent-searches",
-                            JSON.stringify(recentSearches.filter((item: string) => item !== search))
+                            JSON.stringify(recentSearches.filter((item: string) => item !== search)),
                           );
                           recentSearchRevalidate();
                         }}
@@ -84,17 +87,37 @@ function SearchCommand() {
                     </ActionPanel>
                   }
                 />
-              )
+              ),
           )}
         </List.Section>
       </List>
     );
   }
 
+  const sections: { key: FilterValue; component: JSX.Element }[] = [
+    { key: "artists", component: <ArtistsSection type="list" limit={3} artists={searchData?.artists?.items} /> },
+    { key: "tracks", component: <TracksSection limit={4} tracks={searchData?.tracks?.items} /> },
+    { key: "albums", component: <AlbumsSection type="list" limit={6} albums={searchData?.albums?.items} /> },
+    {
+      key: "playlists",
+      component: <PlaylistsSection type="list" limit={6} playlists={searchData?.playlists?.items} />,
+    },
+    { key: "shows", component: <ShowsSection type="list" limit={3} shows={searchData?.shows?.items} /> },
+    { key: "episodes", component: <EpisodesSection limit={3} episodes={searchData?.episodes?.items} /> },
+  ];
+
   if (
     searchText &&
     (searchFilter === "all" || searchFilter === "tracks" || searchFilter === "playlists" || searchFilter === "episodes")
   ) {
+    const orderedSections =
+      searchFilter === "all"
+        ? [
+            ...sections.filter((section) => section.key === topView),
+            ...sections.filter((section) => section.key !== topView),
+          ]
+        : sections.filter((section) => section.key === searchFilter);
+
     return (
       <List
         {...sharedProps}
@@ -110,16 +133,8 @@ function SearchCommand() {
           </List.Dropdown>
         }
       >
-        {searchFilter === "all" && (
-          <>
-            <ArtistsSection type="list" limit={3} artists={searchData?.artists?.items} />
-            <TracksSection limit={4} tracks={searchData?.tracks?.items} />
-            <AlbumsSection type="list" limit={6} albums={searchData?.albums?.items} />
-            <PlaylistsSection type="list" limit={6} playlists={searchData?.playlists?.items} />
-            <ShowsSection type="list" limit={3} shows={searchData?.shows?.items} />
-            <EpisodesSection limit={3} episodes={searchData?.episodes?.items} />
-          </>
-        )}
+        {searchFilter === "all" &&
+          orderedSections.map(({ key, component }) => <Fragment key={key}>{component}</Fragment>)}
 
         {searchFilter === "tracks" && <TracksSection tracks={searchData?.tracks?.items} />}
         {searchFilter === "episodes" && <EpisodesSection episodes={searchData?.episodes?.items} />}
@@ -153,10 +168,10 @@ function SearchCommand() {
   );
 }
 
-export default function Command() {
+export default function Command({ launchContext, fallbackText }: LaunchProps<{ launchContext: { query: string } }>) {
   return (
     <View>
-      <SearchCommand />
+      <SearchCommand initialSearchText={launchContext?.query ?? fallbackText} />
     </View>
   );
 }

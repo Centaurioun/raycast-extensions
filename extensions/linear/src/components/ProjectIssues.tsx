@@ -1,7 +1,7 @@
 import { Action, ActionPanel, List } from "@raycast/api";
 import { IssuePriorityValue, User } from "@linear/sdk";
 
-import { IssueResult, getProjectIssues } from "../api/getIssues";
+import { getProjectIssues } from "../api/getIssues";
 
 import useIssues from "../hooks/useIssues";
 
@@ -16,11 +16,10 @@ type ProjectIssuesProps = {
   projectId: string;
   teamId?: string;
   priorities: IssuePriorityValue[] | undefined;
-  users: User[] | undefined;
   me: User | undefined;
 };
 
-export default function ProjectIssues({ projectId, priorities, me, users }: ProjectIssuesProps) {
+export default function ProjectIssues({ projectId, priorities, me }: ProjectIssuesProps) {
   const { issues, isLoadingIssues, mutateList } = useIssues(getProjectIssues, [projectId]);
   const [milestone, setMilestone] = useCachedState<string>("");
   const { milestones } = useMilestones(projectId);
@@ -30,7 +29,7 @@ export default function ProjectIssues({ projectId, priorities, me, users }: Proj
       return [];
     }
 
-    if (milestone === "") {
+    if (!milestone || !milestones || milestones.length < 1) {
       return issues;
     }
 
@@ -77,13 +76,13 @@ export default function ProjectIssues({ projectId, priorities, me, users }: Proj
           <ActionPanel>
             <Action.Push
               title="Create Issue"
-              target={<CreateIssueForm projectId={projectId} priorities={priorities} users={users} me={me} />}
+              target={<CreateIssueForm projectId={projectId} priorities={priorities} me={me} />}
             />
           </ActionPanel>
         }
       />
 
-      <StateIssueList issues={filteredIssues} mutateList={mutateList} priorities={priorities} users={users} me={me} />
+      <StateIssueList issues={filteredIssues} mutateList={mutateList} priorities={priorities} me={me} />
     </List>
   );
 }

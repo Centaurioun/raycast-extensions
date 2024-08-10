@@ -1,16 +1,26 @@
-import { ResultView } from "./api/main";
 import { getPreferenceValues } from "@raycast/api";
-import { OllamaApiGenerateRequestBody } from "./api/types";
+import { Creativity } from "./lib/enum";
+import { CommandAnswer } from "./lib/settings/enum";
+import { Preferences } from "./lib/types";
+import { AnswerView } from "./lib/ui/AnswerView/main";
 
-const preferences = getPreferenceValues();
+const pref = getPreferenceValues<Preferences>();
+if (!pref.ollamaCertificateValidation) process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = "0";
 
 export default function Command(): JSX.Element {
-  const body = {
-    model: preferences.ollamaFriendlyModel,
-    prompt: "",
-    system:
-      "Act as a writer. Make the following text more friendly while keeping the core idea.\n\nOutput only with the modified text.\n",
-  } as OllamaApiGenerateRequestBody;
+  const c = CommandAnswer.FRIENDLY;
+  const p = `Act as a content writer and editor. (replyWithRewrittenText)
 
-  return ResultView(body, true);
+Strictly follow these rules:
+- Friendly and optimistic tone of voice
+- Correct spelling, grammar, and punctuation
+- Meaning unchanged
+- Length retained
+- (maintainURLs)
+- (maintainOriginalLanguage)
+
+Text: {selection}
+
+Rewritten text:`;
+  return <AnswerView command={c} prompt={p} creativity={Creativity.Low} />;
 }

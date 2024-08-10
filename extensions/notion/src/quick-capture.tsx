@@ -11,14 +11,14 @@ import {
   AI,
   Icon,
 } from "@raycast/api";
-import { useForm } from "@raycast/utils";
+import { useForm, withAccessToken } from "@raycast/utils";
 import { parseHTML } from "linkedom";
 import fetch from "node-fetch";
 import { useState, useEffect } from "react";
 
-import { View } from "./components";
 import { useSearchPages } from "./hooks";
 import { appendToPage, createDatabasePage, getPageIcon } from "./utils/notion";
+import { notionService } from "./utils/notion/oauth";
 
 const getPageDetail = async (url: string) => {
   try {
@@ -30,7 +30,7 @@ const getPageDetail = async (url: string) => {
     const content = parsedDocument?.textContent;
     return { title: document.title, content: content ?? "" };
   } catch (error) {
-    console.log(error);
+    console.error(error);
   }
 };
 
@@ -46,7 +46,9 @@ function validateUrl(input: string) {
 function QuickCapture() {
   const [searchText, setSearchText] = useState<string>("");
 
-  const { data: searchPages, isLoading } = useSearchPages(searchText);
+  const { data, isLoading } = useSearchPages(searchText);
+
+  const searchPages = data?.pages;
 
   const { itemProps, handleSubmit, setValue } = useForm<{
     url: string;
@@ -69,7 +71,16 @@ function QuickCapture() {
 
         if (result && values.captureAs === "ai") {
           const summary = await AI.ask(
-            `Summarize the content surrounded by triple quotes. Give it a heading. Format the output as a Markdown.\n\n"""${result?.content}"""`,
+            `Summarize the page content surrounded by triple quotes. Please use the following template:
+
+# {Heading of the page}
+
+{Summary of the content describing what the page is about. Break it down in multiple paragraphs if necessary.}
+
+Here's the content:
+"""
+${result?.content}
+"""`,
           );
 
           content += `\n\n${summary}`;
@@ -166,10 +177,4 @@ function QuickCapture() {
   );
 }
 
-export default function Command() {
-  return (
-    <View>
-      <QuickCapture />
-    </View>
-  );
-}
+export default withAccessToken(notionService)(QuickCapture);

@@ -8,7 +8,7 @@ interface SidebarItemProp {
   color: string; // HEX color
   icon: string; // SF Symbol Name
   count: number; // Number of links in the list.
-  type: "filter" | "tag" | "preset";
+  type: "filter" | "tag" | "preset" | "folder";
 }
 
 interface PresetProp extends SidebarItemProp {
@@ -23,6 +23,10 @@ export interface TagProp extends SidebarItemProp {
   type: "tag";
 }
 
+export interface FolderProp extends SidebarItemProp {
+  type: "folder";
+}
+
 export interface AnydockProfile {
   id: string; // UUID
   icon: string; // SF Symbol Name
@@ -32,7 +36,7 @@ export interface AnydockProfile {
 async function isAnyboxInstalled() {
   const applications = await getApplications();
   return applications.some(
-    ({ bundleId }) => bundleId === "cc.anybox.Anybox" || bundleId === "ltd.anybox.Anybox-setapp"
+    ({ bundleId }) => bundleId === "cc.anybox.Anybox" || bundleId === "ltd.anybox.Anybox-setapp",
   );
 }
 
@@ -55,6 +59,7 @@ export async function checkForAnyboxInstallation() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function request(path: string, method: string, body?: any, closeWindow = false, headers = {}) {
   const combinedHeaders = { ...headers, "Content-Type": "application/json" };
   return fetch(`http://127.0.0.1:6391/${path}`, {
@@ -90,13 +95,7 @@ export function handleError(error: FetchError) {
       primaryAction: {
         title: "Open Anybox",
         onAction: async (toast) => {
-          const installedApplications = await getApplications();
-          const app = installedApplications.filter((application) => application.bundleId == "ltd.anybox.Anybox-setapp");
-          if (app.length > 0) {
-            open("open", "ltd.anybox.Anybox-setapp");
-          } else {
-            open("open", "cc.anybox.Anybox");
-          }
+          open("anybox://show");
           toast.hide();
         },
       },
@@ -130,6 +129,10 @@ export async function fetchTags() {
   return GET("tags") as Promise<[TagProp]>;
 }
 
+export async function fetchFolders() {
+  return GET("folders") as Promise<[FolderProp]>;
+}
+
 export async function fetchProfiles() {
   return GET("anydock-profiles") as Promise<[AnydockProfile]>;
 }
@@ -150,8 +153,9 @@ export async function fetchSidebar() {
   const presets = fetchPresetSidebarItems();
   const filters = fetchFilters();
   const tags = fetchTags();
-  return Promise.all([presets, filters, tags]).then(([presets, filters, tags]) => {
-    const result = [...presets, ...filters, ...tags];
+  const folders = fetchFolders();
+  return Promise.all([presets, filters, tags, folders]).then(([presets, filters, tags, folders]) => {
+    const result = [...presets, ...filters, ...tags, ...folders];
     return result;
   });
 }

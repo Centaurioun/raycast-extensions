@@ -5,20 +5,28 @@
  * @author Stephen Kaplan <skaplanofficial@gmail.com>
  *
  * Created at     : 2023-09-03 12:37:46
- * Last modified  : 2023-09-03 12:43:51
+ * Last modified  : 2024-01-13 01:04:51
  */
 
 import { environment, showHUD, showToast } from "@raycast/api";
 
 import { StorageKey } from "./constants";
-import { Placeholders } from "./placeholders";
-import { getStorage, setStorage } from "./utils";
+import { getStorage, setStorage } from "./storage";
+import { PLApplicator } from "placeholders-toolkit";
+import PinsPlaceholders from "./placeholders";
 
 /**
  * A scheduled execution of a placeholder. These are stored in the extension's persistent local storage.
  */
 export interface DelayedExecution {
+  /**
+   * The pin target to evaluate.
+   */
   target: string;
+
+  /**
+   * The date and time at which the evaluation should occur.
+   */
   dueDate: Date;
 }
 
@@ -57,7 +65,7 @@ export const removedScheduledEvaluation = async (target: string, dueDate: Date) 
   const delayedExecutions: { target: string; dueDate: string }[] = await getStorage(StorageKey.DELAYED_EXECUTIONS);
   await setStorage(
     StorageKey.DELAYED_EXECUTIONS,
-    delayedExecutions.filter((execution) => execution.target != target && new Date(execution.dueDate) != dueDate)
+    delayedExecutions.filter((execution) => execution.target != target && new Date(execution.dueDate) != dueDate),
   );
 };
 
@@ -69,11 +77,11 @@ export const checkDelayedExecutions = async () => {
   const now = new Date();
   for (const execution of delayedExecutions) {
     if (new Date(execution.dueDate) <= now) {
-      await Placeholders.applyToString(execution.target);
+      await PLApplicator.applyToString(execution.target, { allPlaceholders: PinsPlaceholders });
     }
   }
   await setStorage(
     StorageKey.DELAYED_EXECUTIONS,
-    delayedExecutions.filter((execution) => new Date(execution.dueDate) > now)
+    delayedExecutions.filter((execution) => new Date(execution.dueDate) > now),
   );
 };

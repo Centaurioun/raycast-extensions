@@ -1,5 +1,19 @@
 # Hue Changelog
 
+## [Small improvements] - 2024-01-15
+
+- Improve wording in readme and preferences
+- Add fallback icon
+
+## [Fix] - 2023-11-21
+
+- Fixed bugs
+- Updated dependencies
+
+## [Add plug icon] - 2023-10-18
+
+* Add an icon for a plug
+
 ## [Bug fixes] - 2023-08-30
 
 * Hide dimming actions when a light does not support them

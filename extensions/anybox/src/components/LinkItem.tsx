@@ -2,6 +2,7 @@ import {
   ActionPanel,
   Action,
   List,
+  Grid,
   useNavigation,
   closeMainWindow,
   Icon,
@@ -16,9 +17,8 @@ import dayjs from "dayjs";
 import calendar from "dayjs/plugin/calendar";
 import "dayjs/locale/en";
 import { Link } from "../utilities/searchRequest";
-import { Preferences } from "../utilities/searchRequest";
 
-const preferences: Preferences = getPreferenceValues();
+const preferences = getPreferenceValues<Preferences.Search>();
 
 dayjs.locale("en");
 dayjs.extend(calendar);
@@ -38,7 +38,7 @@ function relativeDate(dateString: string): string {
     sameDay: "[Today at] HH:mm",
     lastDay: "[Yesterday at] HH:mm",
     lastWeek: "[Last] dddd",
-    sameElse: "MMM D, YYYY",
+    sameElse: "D MMM YYYY",
   });
   return result;
 }
@@ -73,6 +73,14 @@ interface Props {
   searchText: string;
 }
 
+function openURL(url: string, preferredBrowser: string) {
+  if (preferredBrowser) {
+    open(url, preferredBrowser);
+  } else {
+    open(url);
+  }
+}
+
 export default function LinkItem(props: Props) {
   const { pop } = useNavigation();
 
@@ -90,6 +98,10 @@ export default function LinkItem(props: Props) {
 
   const imageLink = (identifier: string) => {
     return `http://127.0.0.1:6391/images/${identifier}/image`;
+  };
+
+  const previewLink = (identifier: string) => {
+    return `http://127.0.0.1:6391/images/${identifier}/preview`;
   };
 
   const getDetail = (link: Link) => {
@@ -116,9 +128,9 @@ export default function LinkItem(props: Props) {
         onAction={() => {
           if (isSearchEngine) {
             const newURL = item.url.replace("_keyword_", encodeURIComponent(searchText));
-            open(newURL, item.preferredBrowser);
+            openURL(newURL, item.preferredBrowser);
           } else {
-            open(item.url, item.preferredBrowser);
+            openURL(item.url, item.preferredBrowser);
             updateDateLastOpened(item.id);
           }
           onFinished();
@@ -153,6 +165,7 @@ export default function LinkItem(props: Props) {
                     ))}
                   </Detail.Metadata.TagList>
                 )}
+                {item.folder && <Detail.Metadata.Label title="Folder" text={item.folder?.name} />}
                 {item.comment && <Detail.Metadata.Label title="Comment" text={item.comment} />}
               </Detail.Metadata>
             }
@@ -177,7 +190,7 @@ export default function LinkItem(props: Props) {
           title="Copy Link"
           onCopy={onFinished}
           icon={Icon.Link}
-          shortcut={{ modifiers: ["cmd"], key: "p" }}
+          shortcut={{ modifiers: ["cmd", "shift"], key: "j" }}
         />
         <Action.CopyToClipboard
           content={`[${item.title}](${item.url})`}
@@ -212,26 +225,76 @@ export default function LinkItem(props: Props) {
       </>
     );
   };
-
-  return (
-    <List.Item
-      title={item.title}
-      subtitle={formatSubtitle(item)}
-      icon={{
-        source: iconLink(item.id),
-        fallback: Icon.Globe,
-        mask: Image.Mask.RoundedRectangle,
-      }}
-      accessories={[{ text: isSearchEngine ? "" : relativeDate(item.dateLastOpened) }]}
-      key={item.id}
-      id={item.id}
-      actions={
-        <ActionPanel title={item.title}>
-          <DefaultAction {...props} />
-          {!isSearchEngine && <ShowDetailAction {...props} />}
-          {!isSearchEngine && <Actions {...props} />}
-        </ActionPanel>
+  if (preferences.asIcons) {
+    return (
+      <Grid.Item
+        title={item.title}
+        subtitle={formatSubtitle(item)}
+        content={{
+          source: preferences.preferLinkIcons ? iconLink(item.id) : previewLink(item.id),
+          fallback: Icon.Globe,
+          mask: Image.Mask.RoundedRectangle,
+        }}
+        key={item.id}
+        id={item.id}
+        actions={
+          <ActionPanel title={item.title}>
+            <DefaultAction {...props} />
+            {!isSearchEngine && <ShowDetailAction {...props} />}
+            {!isSearchEngine && <Actions {...props} />}
+          </ActionPanel>
+        }
+      />
+    );
+  } else {
+    const accessories: List.Item.Accessory[] = [];
+    if (item.folder && preferences.showFolders) {
+      accessories.push({
+        tag: {
+          value: item.folder.originalName,
+          color: item.folder.color,
+        },
+      });
+    }
+    if (preferences.showTags) {
+      for (const tag of item.tags) {
+        accessories.push({
+          tag: {
+            value: tag.originalName,
+            color: tag.color,
+          },
+        });
       }
-    />
-  );
+    }
+    if (!isSearchEngine) {
+      let dateText = "";
+      if (preferences.showFolders || preferences.showTags) {
+        accessories.push({ date: new Date(item.dateLastOpened) });
+      } else {
+        dateText = relativeDate(item.dateLastOpened);
+        accessories.push({ text: dateText });
+      }
+    }
+    return (
+      <List.Item
+        title={item.title}
+        subtitle={formatSubtitle(item)}
+        icon={{
+          source: iconLink(item.id),
+          fallback: Icon.Globe,
+          mask: Image.Mask.RoundedRectangle,
+        }}
+        accessories={accessories}
+        key={item.id}
+        id={item.id}
+        actions={
+          <ActionPanel title={item.title}>
+            <DefaultAction {...props} />
+            {!isSearchEngine && <ShowDetailAction {...props} />}
+            {!isSearchEngine && <Actions {...props} />}
+          </ActionPanel>
+        }
+      />
+    );
+  }
 }

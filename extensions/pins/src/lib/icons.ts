@@ -5,7 +5,7 @@
  * @author Stephen Kaplan <skaplanofficial@gmail.com>
  *
  * Created at     : 2023-09-04 17:35:54
- * Last modified  : 2023-09-04 17:36:23
+ * Last modified  : 2023-11-01 00:44:02
  */
 
 import { Icon } from "@raycast/api";
@@ -31,7 +31,7 @@ export const getIcon = (iconRef: string, color?: string) => {
     return { fileIcon: iconRef };
   } else if (iconRef.match(/^[a-zA-Z0-9]*?:.*/g)) {
     return getFavicon(iconRef);
-  } else if (iconRef == "None") {
+  } else if (iconRef == "None" || iconRef.replace(/{{(([^{]|{(?!{)|{{[\s\S]*?}})*?)}}/g, "").trim().length == 0) {
     return { source: Icon.Minus, tintColor: color };
   }
   return { source: Icon.Terminal, tintColor: color };
@@ -45,7 +45,9 @@ export const getIcon = (iconRef: string, color?: string) => {
 export const getPinIcon = (pin: Pin) => {
   return pin.icon in iconMap || pin.icon == "None" || pin.icon.startsWith("/")
     ? getIcon(pin.icon, pin.iconColor)
-    : getIcon(pin.url);
+    : pin.fragment
+      ? Icon.Text
+      : getIcon(pin.url);
 };
 
 /**
@@ -57,6 +59,6 @@ export const getGroupIcon = (group: Group) => {
   return group.name == "Recent Applications"
     ? Icon.Clock
     : group.icon in iconMap
-    ? { source: iconMap[group.icon], tintColor: group.iconColor }
-    : Icon.Minus;
+      ? { source: iconMap[group.icon], tintColor: group.iconColor }
+      : Icon.Minus;
 };
