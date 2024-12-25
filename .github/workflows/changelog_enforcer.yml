@@ -11,4 +11,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Changelog enforce
-        uses: raycast/github-actions/changelog-enforcer@master
+        uses: dangoslen/changelog-enforcer@v3.6.1
