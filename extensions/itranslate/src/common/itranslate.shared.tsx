@@ -16,7 +16,7 @@ import querystring from "node:querystring";
 import { LanguageConflict, OCRServiceProviderMiss, ServiceProviderMiss } from "../components/TranslateError";
 import translate from "@vitalets/google-translate-api";
 import Core from "@alicloud/pop-core";
-import { execSync } from "child_process";
+import { execFileSync } from "child_process";
 import os from "node:os";
 import path from "node:path";
 import fs from "node:fs";
@@ -900,8 +900,8 @@ export function clearAllHistory() {
 
 export function say(text: string, voice?: string) {
   try {
-    const command = `say -v "${voice}" "${text.replace(/"/g, " ")}"`;
-    execSync(command);
+    const args = ['-v', voice, text.replace(/"/g, " ")];
+    execFileSync('say', args);
   } catch (error) {
     console.log(error);
   }
